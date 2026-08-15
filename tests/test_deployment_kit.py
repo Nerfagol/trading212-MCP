@@ -343,21 +343,63 @@ def test_repository_has_approved_mit_license() -> None:
     assert 'THE SOFTWARE IS PROVIDED "AS IS"' in license_text
 
 
-def test_readme_starts_with_deployment_first_onboarding() -> None:
+def test_readme_starts_with_product_first_onboarding() -> None:
     readme = (ROOT / "README.md").read_text()
     headings = [
-        "## Choose your deployment",
-        "## Quick start: local Docker",
-        "## Quick start: QNAP LAN-only",
-        "## Connect ChatGPT with Secure MCP Tunnel",
-        "## Verify the deployment",
-        "## MCP tools",
-        "## Architecture",
-        "## Troubleshooting",
+        "## 📊 What this gives you",
+        "## 💬 Example questions",
+        "## 🔒 Read-only by design",
+        "## ✅ What to expect",
+        "## 🚀 Choose your deployment",
+        "## 🐳 Quick start: local Docker",
+        "## 🗄️ Deploy on QNAP",
+        "## 🔐 Connect ChatGPT securely",
+        "## 🧰 MCP tools",
+        "## 📚 Documentation",
     ]
 
     offsets = [readme.index(heading) for heading in headings]
     assert offsets == sorted(offsets)
+    assert len(readme.splitlines()) <= 220
+
+
+def test_readme_describes_supported_product_experience() -> None:
+    readme = (ROOT / "README.md").read_text().lower()
+
+    for expectation in (
+        "structured account data",
+        "not a browser dashboard",
+        "demo",
+        "live",
+        "eight read-only tools",
+        "sensitive financial data",
+    ):
+        assert expectation in readme
+
+
+def test_readme_examples_map_only_to_supported_read_capabilities() -> None:
+    readme = (ROOT / "README.md").read_text()
+    examples = readme.split("## 💬 Example questions", 1)[1].split("\n## ", 1)[0].lower()
+
+    for capability in (
+        "account summary",
+        "cash is available",
+        "open positions",
+        "pending orders",
+        "transactions",
+        "dividends",
+    ):
+        assert capability in examples
+    for unsupported in ("forecast", "recommend", "should i buy", "tax report", "alert me"):
+        assert unsupported not in examples
+
+
+def test_root_readme_lists_exact_read_only_tool_surface() -> None:
+    readme = (ROOT / "README.md").read_text()
+    tools = readme.split("## 🧰 MCP tools", 1)[1].split("\n## ", 1)[0]
+    documented = set(re.findall(r"`(get_[a-z_]+)`", tools))
+
+    assert documented == EXPECTED_TOOLS
 
 
 def test_readme_documents_all_deployment_entrypoints() -> None:
@@ -384,12 +426,55 @@ def test_readme_explains_official_agent_skills_relationship() -> None:
     assert "includes trading actions" in readme
 
 
+def test_focused_documents_own_configuration_security_and_development() -> None:
+    configuration = (ROOT / "docs" / "configuration.md").read_text()
+    security = (ROOT / "docs" / "security.md").read_text()
+    development = (ROOT / "docs" / "development.md").read_text()
+
+    for variable in (
+        "T212_API_KEY",
+        "T212_API_SECRET",
+        "T212_ENV",
+        "MCP_BIND_ADDRESS",
+        "MCP_ALLOWED_HOSTS",
+        "MCP_ALLOWED_ORIGINS",
+    ):
+        assert f"`{variable}`" in configuration
+
+    for statement in (
+        "six allowlisted",
+        "GET",
+        "no generic",
+        "OpenAI tunnel control plane",
+        "tunnel-client on QNAP",
+        "LAN-only Streamable HTTP",
+    ):
+        assert statement in security
+
+    for command in ("pytest", "ruff check .", "mypy", "python -m build"):
+        assert command in development
+
+
+def test_all_root_readme_local_links_resolve() -> None:
+    readme = (ROOT / "README.md").read_text()
+    targets = re.findall(r"\]\(([^)]+)\)", readme)
+
+    for target in targets:
+        if "://" in target or target.startswith("#"):
+            continue
+        path = target.split("#", 1)[0]
+        assert (ROOT / path).exists(), target
+
+
 def test_root_readme_links_the_complete_deployment_kit() -> None:
     readme = (ROOT / "README.md").read_text()
 
     for target in (
         "LICENSE",
+        "docs/configuration.md",
         "docs/mcp-tools.md",
+        "docs/security.md",
+        "docs/development.md",
         "docs/qnap-deployment.md",
         "docs/secure-mcp-tunnel.md",
         "deploy/qnap/README.md",
@@ -397,9 +482,8 @@ def test_root_readme_links_the_complete_deployment_kit() -> None:
         assert f"]({target})" in readme
 
 
-def test_root_architecture_includes_the_private_tunnel_route() -> None:
-    readme = (ROOT / "README.md").read_text()
-    architecture = readme.split("## Architecture", 1)[1].split("\n## ", 1)[0]
+def test_security_guide_includes_the_private_tunnel_route() -> None:
+    security = (ROOT / "docs" / "security.md").read_text()
 
     for component in (
         "OpenAI tunnel control plane",
@@ -408,4 +492,4 @@ def test_root_architecture_includes_the_private_tunnel_route() -> None:
         "Trading 212 MCP server",
         "Trading 212 Public API",
     ):
-        assert component in architecture
+        assert component in security
