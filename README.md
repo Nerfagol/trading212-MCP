@@ -1,139 +1,261 @@
 # Trading 212 Read-Only MCP Server
 
 A minimal, stateless MCP server for reading a Trading 212 Invest or Stocks ISA
-account. It is deliberately unable to place, change, or cancel orders.
+account from an MCP client. Run it locally with Docker, keep it LAN-only on a
+QNAP NAS, or connect ChatGPT through OpenAI Secure MCP Tunnel.
 
-## Architecture
+## Read-only by design
 
-```text
-ChatGPT or another supported OpenAI product
-                      |
-           OpenAI tunnel control plane
-                      |
-       outbound HTTPS polling/responses
-                      |
-           tunnel-client on QNAP --------+
-                                         |
-Trusted LAN MCP client ------------------+
-                                         |
-                      LAN-only Streamable HTTP
-                                         |
-                  /mcp  Trading 212 MCP server  /health
-                                         |
-                        fixed GET-only API client
-                                         |
-                         Trading 212 Public API
+This server implements exactly six allowlisted Trading 212 `GET` endpoints. It
+has no buy, sell, create, place, cancel, modify, or update-order implementation,
+and exposes no generic HTTP request method.
+
+## Choose your deployment
+
+| Route | Best for | Network exposure | Start here |
+| --- | --- | --- | --- |
+| Local Docker | Evaluation and development | Loopback only | `docker compose` |
+| QNAP LAN-only | Trusted devices on your LAN | Fixed NAS LAN address | `deploy.sh mcp` |
+| QNAP + Secure MCP Tunnel | ChatGPT and supported OpenAI products | Outbound HTTPS; no inbound public port | `deploy.sh tunnel` |
+
+Start with Demo credentials. Trading 212 Demo and Live credentials are
+environment-specific, so `T212_ENV` must match the account where the key was
+created.
+
+## Quick start: local Docker
+
+Prerequisites: Git, Docker Engine, and Docker Compose v2.
+
+```bash
+git clone https://github.com/Nerfagol/trading212-MCP.git
+cd trading212-MCP
+cp .env.example .env
+chmod 600 .env
+# Edit .env. Start with a Demo key and T212_ENV=demo.
+docker compose up -d --build
+curl --fail --silent http://127.0.0.1:8000/health
 ```
 
-The service uses the official MCP Python SDK 2.0, stateless JSON Streamable
-HTTP, and `httpx`. Credentials are read only when a tool is called; `/health`
-does not contact Trading 212. LAN clients can connect directly. ChatGPT reaches
-the same private `/mcp` endpoint through the outbound-only OpenAI Secure MCP
-Tunnel; port 8000 is not exposed publicly.
+The expected health response is `{"status":"ok"}`. The health check does not
+load Trading 212 credentials or contact Trading 212. The local `.env` is ignored
+by Git and excluded from the Docker build context.
 
-## MCP tools
+The local endpoints are:
 
-| Tool | Purpose |
-| --- | --- |
-| `get_account` | Account ID, currency, total value, cash, and investment summary |
-| `get_cash` | Currency, available cash, reserved cash, and cash in pies |
-| `get_portfolio` | All open positions and their current values and P/L |
-| `get_position` | Open position for one exact Trading 212 ticker |
-| `get_orders` | Current pending orders, read-only |
-| `get_order_history` | One page of historical orders/fills, optionally by ticker |
-| `get_transactions` | One page of deposits, withdrawals, fees, and transfers |
-| `get_dividends` | One page of paid dividends, optionally by ticker |
+- MCP: `http://127.0.0.1:8000/mcp`
+- Health: `http://127.0.0.1:8000/health`
 
-Historical tools accept `limit` from 1 to 50. If a response contains
-`next_page_path`, pass it unchanged to the same tool to fetch the next page.
-The server validates the path and never follows another host or endpoint.
-
-Every tool advertises MCP `readOnlyHint: true`, `destructiveHint: false`, and
-`openWorldHint: false`. These annotations help clients, but the actual safety
-boundary is the GET-only client implementation.
-
-## Trading 212 endpoints
-
-Only these requests are compiled into the client:
-
-| Method | Endpoint | Tools |
-| --- | --- | --- |
-| `GET` | `/api/v0/equity/account/summary` | `get_account`, `get_cash` |
-| `GET` | `/api/v0/equity/positions` | `get_portfolio`, `get_position` |
-| `GET` | `/api/v0/equity/orders` | `get_orders` |
-| `GET` | `/api/v0/equity/history/orders` | `get_order_history` |
-| `GET` | `/api/v0/equity/history/transactions` | `get_transactions` |
-| `GET` | `/api/v0/equity/history/dividends` | `get_dividends` |
-
-There is no generic public HTTP method and no POST, PUT, PATCH, or DELETE call.
-The API client rejects any path not in the table.
-
-## Trading 212 credentials and permissions
-
-Generate credentials in the Trading 212 web or mobile app:
-
-1. Switch to the intended Demo or Live account.
-2. Open **Settings > API (Beta)**.
-3. Generate a key pair, select the minimum permissions, and preferably restrict
-   the key to the NAS's outbound public IP or CIDR.
-4. Store the API secret immediately; Trading 212 shows it once.
-
-See Trading 212's current [API key instructions](https://helpcentre.trading212.com/hc/en-us/articles/14584770928157-Trading-212-API-key).
-
-The UI currently describes permissions such as account data, portfolio,
-history, and orders. Enable account data, portfolio, and history for the
-corresponding tools. `get_orders` may require the Orders permission. Do not
-enable order-placement/trading permissions if the UI offers them separately.
-If Orders is bundled with write authority and you prefer least privilege, omit
-it; only `get_orders` should fail with 403 and the server still has no write
-code.
-
-Credentials are environment-specific. A Demo key does not work against Live
-and vice versa.
-
-## Environment variables
-
-| Variable | Required | Default | Meaning |
-| --- | --- | --- | --- |
-| `T212_API_KEY` | Yes | none | Trading 212 API key ID |
-| `T212_API_SECRET` | Yes | none | Trading 212 API secret |
-| `T212_ENV` | No | `demo` | `demo` or `live` |
-| `MCP_BIND_ADDRESS` | Compose only | `127.0.0.1` | Host interface used for published port |
-| `MCP_PORT` | Compose only | `8000` | Published host port |
-| `MCP_ALLOWED_HOSTS` | No | local/container hosts | Comma-separated MCP Host-header allowlist |
-| `MCP_ALLOWED_ORIGINS` | No | local HTTP origins | Comma-separated browser Origin allowlist |
-
-Demo is the safe default. Selecting `live` only changes the fixed base URL; it
-does not add any capability.
-
-## Install and run locally
-
-Python 3.12 or later is required.
+To run from source instead, use Python 3.12 or later:
 
 ```bash
 python3 -m venv .venv
 . .venv/bin/activate
 python -m pip install -e '.[dev]'
-
-export T212_API_KEY='your-key'
-export T212_API_SECRET='your-secret'
-export T212_ENV='demo'
+set -a
+. ./.env
+set +a
 python -m trading212_mcp.server
 ```
 
-The endpoints are:
+## Quick start: QNAP LAN-only
 
-- MCP: `http://127.0.0.1:8000/mcp`
-- Health: `http://127.0.0.1:8000/health`
+Prerequisites: Container Station, Docker Compose v2, SSH access with permission
+to use Docker, and a fixed NAS LAN address.
 
-```bash
-curl --fail --silent http://127.0.0.1:8000/health
-# {"status":"ok"}
+Clone or securely transfer the repository into a persistent share such as:
+
+```sh
+cd /share/Container
+git clone https://github.com/Nerfagol/trading212-MCP.git trading212-mcp
+cd /share/Container/trading212-mcp
+cp .env.example .env
+chmod 600 .env
 ```
 
-## Tests and static checks
+Edit `.env` with a protected editor. Set `MCP_BIND_ADDRESS` to the fixed NAS LAN
+address, not `0.0.0.0`, and add that address with `:*` to
+`MCP_ALLOWED_HOSTS`. Set `T212_ENV=demo` or `T212_ENV=live` to match the key.
 
-All Trading 212 responses are mocked with `httpx.MockTransport`.
+Deploy only the MCP service and run the non-financial verifier:
+
+```sh
+./deploy/qnap/deploy.sh mcp
+./deploy/qnap/verify.sh mcp
+```
+
+The deployment script affects only the named Compose project. The verifier
+checks container health, LAN binding, and exact MCP tool discovery without
+invoking any Trading 212 tool. See the [complete QNAP deployment guide](docs/qnap-deployment.md)
+for configuration, updates, and rollback.
+
+## Connect ChatGPT with Secure MCP Tunnel
+
+Keep the MCP service bound to the NAS LAN address. OpenAI Secure MCP Tunnel runs
+as a separate hardened container on the QNAP and makes an outbound HTTPS
+connection to OpenAI. It does not require a public port, router forwarding,
+public DNS, or a reverse proxy.
+
+Create the tunnel and runtime key using the official
+[Secure MCP Tunnel guide](https://developers.openai.com/api/docs/guides/secure-mcp-tunnels),
+then prepare the protected QNAP files:
+
+```sh
+./deploy/qnap/tunnel/prepare-secrets.sh init
+# Populate protected files without putting values in shell history.
+./deploy/qnap/tunnel/prepare-secrets.sh lock
+./deploy/qnap/deploy.sh tunnel
+./deploy/qnap/verify.sh tunnel
+```
+
+The tunnel target is `http://<NAS_LAN_IP>:8000/mcp`. Port 8000 remains LAN-only,
+the tunnel health/admin listener remains QNAP-loopback-only on port 18080, and
+the tunnel Compose project publishes no ports. Follow the repository's
+[Secure MCP Tunnel guide](docs/secure-mcp-tunnel.md) for protected-file formats,
+verification, and the current ChatGPT Web connection flow.
+
+## Verify the deployment
+
+For local Docker:
+
+```bash
+docker compose ps
+curl --fail --silent http://127.0.0.1:8000/health
+```
+
+For QNAP, use the scoped verifier appropriate to the deployed services:
+
+```sh
+./deploy/qnap/verify.sh mcp
+./deploy/qnap/verify.sh tunnel
+# Or, when both are deployed:
+./deploy/qnap/verify.sh all
+```
+
+To inspect MCP discovery locally, start the official MCP Inspector:
+
+```bash
+npx @modelcontextprotocol/inspector@latest
+```
+
+Choose **Streamable HTTP**, connect to the private `/mcp` URL, and confirm the
+eight tools listed below. Discovery alone does not call Trading 212. Run the
+automated write-surface check with:
+
+```bash
+pytest tests/test_security.py -q
+```
+
+## MCP tools
+
+| Tool | Purpose | Trading 212 request |
+| --- | --- | --- |
+| `get_account` | Account ID, currency, value, cash, and investment summary | `GET /api/v0/equity/account/summary` |
+| `get_cash` | Available, reserved, and pie cash projected from account summary | `GET /api/v0/equity/account/summary` |
+| `get_portfolio` | All open positions and current values and P/L | `GET /api/v0/equity/positions` |
+| `get_position` | One open position by exact Trading 212 ticker | `GET /api/v0/equity/positions` |
+| `get_orders` | Current pending orders, read-only | `GET /api/v0/equity/orders` |
+| `get_order_history` | One page of historical orders and fills | `GET /api/v0/equity/history/orders` |
+| `get_transactions` | One page of deposits, withdrawals, fees, and transfers | `GET /api/v0/equity/history/transactions` |
+| `get_dividends` | One page of paid dividends | `GET /api/v0/equity/history/dividends` |
+
+Historical tools accept `limit` from 1 to 50 and return at most one page per
+call. Pass a returned `next_page_path` unchanged to the same tool for the next
+page. The client rejects absolute URLs, other hosts, unknown query keys, and
+paths for another endpoint.
+
+Every tool advertises MCP `readOnlyHint: true`, `destructiveHint: false`, and
+`openWorldHint: false`. The technical boundary is the fixed GET-only client,
+not the annotations. See the [detailed MCP tool reference](docs/mcp-tools.md)
+for arguments, response shapes, pagination, and error behavior.
+
+## Trading 212 permissions
+
+Generate credentials in the intended Demo or Live account under
+**Settings > API (Beta)**. Trading 212 shows the secret once. See the official
+[API key instructions](https://helpcentre.trading212.com/hc/en-us/articles/14584770928157-Trading-212-API-key).
+
+Enable only the read permissions needed by the tools you plan to use:
+
+- account data for `get_account` and `get_cash`;
+- portfolio for `get_portfolio` and `get_position`;
+- history for orders, transactions, and dividends; and
+- read-order access for `get_orders`, when available separately.
+
+Do not enable trading or order-management permission when it is offered
+separately. If Trading 212 bundles order reads with broader authority and you
+prefer least privilege, omit that permission; `get_orders` may return 403 while
+the server remains technically incapable of writing.
+
+Required runtime variables are `T212_API_KEY` and `T212_API_SECRET`.
+`T212_ENV` accepts `demo` or `live` and defaults to `demo`. Deployment variables
+and safe defaults are documented in [`.env.example`](.env.example).
+
+## Architecture
+
+```text
+ChatGPT -> OpenAI tunnel control plane -> tunnel-client on QNAP
+                                               |
+Trusted LAN MCP client ------------------------+
+                                               |
+                            LAN-only Streamable HTTP
+                                               |
+                            Trading 212 MCP server
+                              /mcp      /health
+                                               |
+                           fixed GET-only API client
+                                               |
+                            Trading 212 Public API
+```
+
+The MCP service uses the official MCP Python SDK 2.0, stateless JSON Streamable
+HTTP, and `httpx`. ChatGPT uses the optional outbound tunnel route; trusted LAN
+clients can connect directly. `/health` is local to the service and contains no
+configuration or account data.
+
+## Security design
+
+- Exactly six Trading 212 paths are allowlisted, and every request is `GET`.
+- There is no generic request method and no buy, sell, order-placement,
+  cancellation, modification, or update method in the MCP server or API client.
+- Credentials are read from environment variables, kept in an in-memory Basic
+  auth object, and excluded from responses, logs, and exception messages.
+- Upstream response bodies and Authorization headers are never included in
+  client-visible HTTP errors.
+- A 429 is not retried automatically; safe numeric rate-limit timing may be
+  returned without creating an infinite retry loop.
+- Historical tools deliberately retrieve one validated page per call.
+- MCP Host and Origin validation reduces DNS-rebinding risk.
+- The containers run non-root with read-only filesystems, all capabilities
+  dropped, `no-new-privileges`, small temporary filesystems, and no database.
+- The QNAP MCP listener is bound to a fixed LAN address. The optional tunnel
+  publishes no port and keeps its admin listener on `127.0.0.1`.
+
+The security suite enumerates the MCP surface and inspects the API client AST
+for mutating or generic HTTP calls. The QNAP verifier additionally rejects
+write-like discovered tool names.
+
+## Troubleshooting
+
+| Symptom | Likely cause | Safe check |
+| --- | --- | --- |
+| Trading 212 returns 401 | Key ID/secret is invalid or belongs to the other environment | Confirm `T212_ENV` matches where the key was created; replace the protected files without printing them |
+| A tool returns 403 | The key lacks that read permission | Review the key's account, portfolio, history, or read-order permissions |
+| MCP returns 421 | The request Host is not allowlisted | Add the exact LAN host with `:*` to `MCP_ALLOWED_HOSTS`, then recreate only this service |
+| MCP container is unhealthy | Configuration, bind address, or startup failure | Run `docker compose ps` and inspect redacted service logs; never print `.env` |
+| Tunnel is not ready | Control-plane identity/key, outbound HTTPS, or private target reachability | Run `./deploy/qnap/verify.sh tunnel`; it discards raw doctor output |
+
+For QNAP-specific Docker locations, rollback, and LAN-bound checks, use the
+[QNAP deployment guide](docs/qnap-deployment.md). Do not paste `.env`, tunnel
+credentials, raw doctor output, or account data into an issue.
+
+## Detailed documentation
+
+- [MCP tool reference](docs/mcp-tools.md)
+- [QNAP deployment guide](docs/qnap-deployment.md)
+- [Secure MCP Tunnel guide](docs/secure-mcp-tunnel.md)
+- [QNAP operator command reference](deploy/qnap/README.md)
+
+Development checks use mocked Trading 212 responses:
 
 ```bash
 pytest
@@ -142,151 +264,28 @@ mypy
 python -m build
 ```
 
-Security tests enumerate MCP tools, inspect public client methods, and parse the
-client AST to reject mutating or generic HTTP calls.
+No real credentials are required for the test suite.
 
-```bash
-pytest tests/test_security.py -q
-rg -n -i 'buy|sell|place.order|cancel.order|modify.order|update.order|\.post\(|\.put\(|\.patch\(|\.delete\(' src
-```
+## Related official resources
 
-The word search will find explanatory text in tool descriptions or comments;
-review each match. There must be no write tool and no mutating HTTP invocation.
+- [Trading 212 Public API documentation](https://docs.trading212.com/api)
+- [Trading 212 agent-skills repository](https://github.com/trading212-labs/agent-skills)
+- [Model Context Protocol Python SDK](https://github.com/modelcontextprotocol/python-sdk)
+- [Model Context Protocol transports](https://modelcontextprotocol.io/specification/2025-03-26/basic/transports)
+- [OpenAI Secure MCP Tunnel](https://developers.openai.com/api/docs/guides/secure-mcp-tunnels)
+- [Connect an MCP server to ChatGPT](https://developers.openai.com/plugins/deploy/connect-chatgpt)
 
-## Inspect MCP tools
+The official Trading 212 agent-skills repository informed the API research for
+this project. It includes trading actions. This project does not import or depend on agent-skills
+and intentionally implements only allowlisted GET operations.
 
-Start the server, then use the official MCP Inspector:
+## Disclaimer
 
-```bash
-npx @modelcontextprotocol/inspector@latest
-```
+This independent project is not affiliated with or endorsed by Trading 212.
+Trading 212 names are used only to describe interoperability. This software is
+not financial advice. Review the source, permissions, and network boundary
+before connecting an account.
 
-In the Inspector, choose **Streamable HTTP**, enter
-`http://127.0.0.1:8000/mcp`, connect, and open **Tools**. Confirm the eight tool
-names above, their schemas, and their read-only annotations. No real Trading 212
-call occurs until you invoke a tool.
+## License
 
-## Docker
-
-Build directly:
-
-```bash
-docker build --pull -t trading212-mcp:local .
-docker run --rm \
-  --read-only --tmpfs /tmp:size=16m \
-  --cap-drop ALL --security-opt no-new-privileges \
-  -p 127.0.0.1:8000:8000 \
-  -e T212_API_KEY \
-  -e T212_API_SECRET \
-  -e T212_ENV=demo \
-  trading212-mcp:local
-```
-
-The image is based on `python:3.12-slim`, uses a multi-stage wheel build, and
-runs as UID/GID 10001 rather than root.
-
-## Docker Compose
-
-```bash
-cp .env.example .env
-chmod 600 .env
-# Edit .env; do not commit it.
-docker compose config
-docker compose up -d --build
-docker compose ps
-curl --fail http://127.0.0.1:8000/health
-```
-
-Compose uses `restart: unless-stopped`, a healthcheck, a read-only filesystem,
-a small `/tmp` tmpfs, no added capabilities, and no database or persistent
-volume.
-
-## Deployment kit
-
-The repository includes a sanitized, reproducible QNAP deployment kit:
-
-- [QNAP operator commands](deploy/qnap/README.md)
-- [complete QNAP deployment guide](docs/qnap-deployment.md)
-- [OpenAI Secure MCP Tunnel guide](docs/secure-mcp-tunnel.md)
-- [detailed MCP tool reference](docs/mcp-tools.md)
-
-The kit provides hardened tunnel Compose configuration and POSIX scripts for
-secret-file preparation, deployment, updates, health/readiness checks, local
-MCP discovery, and security verification. It includes no deployed NAS address,
-tunnel identifier, API key, Trading 212 credential, or financial value.
-
-For QNAP, place the project in a persistent path such as
-`/share/Container/trading212-mcp`, set `MCP_BIND_ADDRESS` to the NAS's fixed LAN
-address, set mode `600` on `.env`, and run:
-
-```sh
-./deploy/qnap/deploy.sh mcp
-./deploy/qnap/verify.sh mcp
-```
-
-The verifier enumerates tool names without invoking them. Keep port 8000
-LAN-only and never create a router port forward.
-
-## Security design
-
-- Only six fixed Trading 212 paths are allowlisted, and every request is GET.
-- There are no buy, sell, placement, cancellation, modification, or update
-  methods in either MCP or the API client.
-- Credentials exist only in environment variables and an in-memory Basic auth
-  object. They are not returned, logged, or interpolated into exceptions.
-- HTTP errors never include upstream response bodies or Authorization headers.
-- 429 responses are not retried automatically; only a numeric rate-limit reset
-  timestamp is exposed.
-- Historical calls fetch one page, avoiding infinite loops, request bursts, and
-  unbounded model context.
-- Pagination paths must be relative, match the same historical endpoint, and
-  contain only documented query keys.
-- MCP Host and Origin validation is enabled to reduce DNS-rebinding risk.
-- `/health` returns only `{"status":"ok"}` and does not load credentials or call
-  Trading 212.
-- The runtime container is non-root, capability-free, stateless, and read-only.
-
-The official Trading 212 skill repository includes trading actions and was used
-only as research. None of its POST/DELETE behavior is included here. See the
-[official skill](https://github.com/trading212-labs/agent-skills/tree/master/plugins/trading212-api/skills/trading212-api)
-and the [current Trading 212 API reference](https://docs.trading212.com/api).
-
-## Private remote connection with OpenAI Secure MCP Tunnel
-
-The optional tunnel project connects the LAN-only `/mcp` endpoint to supported
-OpenAI products using outbound HTTPS. It does not expose port 8000 or the tunnel
-admin UI publicly. Runtime credentials remain in ignored, protected files and
-are mounted read-only into the non-root tunnel container.
-
-Follow the [Secure MCP Tunnel guide](docs/secure-mcp-tunnel.md), then run:
-
-```sh
-./deploy/qnap/tunnel/prepare-secrets.sh init
-# Populate protected files without placing values in shell history.
-./deploy/qnap/tunnel/prepare-secrets.sh lock
-./deploy/qnap/deploy.sh tunnel
-./deploy/qnap/verify.sh tunnel
-```
-
-Do not add router forwarding, a public reverse proxy, public DNS, or another
-tunnel. See OpenAI's current
-[Secure MCP Tunnel documentation](https://developers.openai.com/api/docs/guides/secure-mcp-tunnels)
-and [ChatGPT connection guide](https://developers.openai.com/plugins/deploy/connect-chatgpt).
-
-## Current-documentation decisions
-
-- The current Trading 212 operation catalog exposes account summary, not a
-  separate account-cash operation, although one quickstart still mentions
-  `/account/cash`. `get_cash` therefore projects the documented account-summary
-  response instead of calling an uncertain endpoint.
-- Current historical endpoint pages state 6 requests per minute, while the
-  official skill text still says 50 per minute. This server follows the current
-  API pages, fetches one page per call, and does no automatic retry.
-- MCP Python SDK 2.0 replaced older `FastMCP` examples with `MCPServer` and now
-  supports the 2026-07-28 protocol. This project pins stable `mcp==2.0.0` and
-  uses the current API.
-- Streamable HTTP remains the recommended remote transport. SSE is not exposed.
-
-Relevant protocol sources are the [MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk),
-the [MCP transport specification](https://modelcontextprotocol.io/specification/2025-03-26/basic/transports),
-and the [Trading 212 pagination reference](https://docs.trading212.com/api/section/pagination).
+Licensed under the [MIT License](LICENSE).

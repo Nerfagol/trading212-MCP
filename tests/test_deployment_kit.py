@@ -334,10 +334,61 @@ def test_operator_readme_links_all_detailed_guides() -> None:
         assert f"]({target})" in text
 
 
+def test_repository_has_approved_mit_license() -> None:
+    license_text = (ROOT / "LICENSE").read_text()
+
+    assert license_text.startswith("MIT License\n")
+    assert "Copyright (c) 2026 Nerfagol" in license_text
+    assert "Permission is hereby granted, free of charge" in license_text
+    assert 'THE SOFTWARE IS PROVIDED "AS IS"' in license_text
+
+
+def test_readme_starts_with_deployment_first_onboarding() -> None:
+    readme = (ROOT / "README.md").read_text()
+    headings = [
+        "## Choose your deployment",
+        "## Quick start: local Docker",
+        "## Quick start: QNAP LAN-only",
+        "## Connect ChatGPT with Secure MCP Tunnel",
+        "## Verify the deployment",
+        "## MCP tools",
+        "## Architecture",
+        "## Troubleshooting",
+    ]
+
+    offsets = [readme.index(heading) for heading in headings]
+    assert offsets == sorted(offsets)
+
+
+def test_readme_documents_all_deployment_entrypoints() -> None:
+    readme = (ROOT / "README.md").read_text()
+
+    for command in (
+        "docker compose up -d --build",
+        "./deploy/qnap/deploy.sh mcp",
+        "./deploy/qnap/verify.sh mcp",
+        "./deploy/qnap/tunnel/prepare-secrets.sh init",
+        "./deploy/qnap/tunnel/prepare-secrets.sh lock",
+        "./deploy/qnap/deploy.sh tunnel",
+        "./deploy/qnap/verify.sh tunnel",
+    ):
+        assert command in readme
+
+
+def test_readme_explains_official_agent_skills_relationship() -> None:
+    readme = (ROOT / "README.md").read_text().lower()
+
+    assert "https://github.com/trading212-labs/agent-skills" in readme
+    assert "not affiliated with or endorsed by trading 212" in readme
+    assert "does not import or depend on agent-skills" in readme
+    assert "includes trading actions" in readme
+
+
 def test_root_readme_links_the_complete_deployment_kit() -> None:
     readme = (ROOT / "README.md").read_text()
 
     for target in (
+        "LICENSE",
         "docs/mcp-tools.md",
         "docs/qnap-deployment.md",
         "docs/secure-mcp-tunnel.md",
@@ -348,7 +399,7 @@ def test_root_readme_links_the_complete_deployment_kit() -> None:
 
 def test_root_architecture_includes_the_private_tunnel_route() -> None:
     readme = (ROOT / "README.md").read_text()
-    architecture = readme.split("## Architecture", 1)[1].split("## MCP tools", 1)[0]
+    architecture = readme.split("## Architecture", 1)[1].split("\n## ", 1)[0]
 
     for component in (
         "OpenAI tunnel control plane",
