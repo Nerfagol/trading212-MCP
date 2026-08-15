@@ -6,20 +6,30 @@ account. It is deliberately unable to place, change, or cancel orders.
 ## Architecture
 
 ```text
-ChatGPT or another MCP client
-              |
-       Streamable HTTP
-              |
-    /mcp  Trading 212 MCP server  /health
-              |
-     fixed GET-only API client
-              |
-       Trading 212 Public API
+ChatGPT or another supported OpenAI product
+                      |
+           OpenAI tunnel control plane
+                      |
+       outbound HTTPS polling/responses
+                      |
+           tunnel-client on QNAP --------+
+                                         |
+Trusted LAN MCP client ------------------+
+                                         |
+                      LAN-only Streamable HTTP
+                                         |
+                  /mcp  Trading 212 MCP server  /health
+                                         |
+                        fixed GET-only API client
+                                         |
+                         Trading 212 Public API
 ```
 
 The service uses the official MCP Python SDK 2.0, stateless JSON Streamable
 HTTP, and `httpx`. Credentials are read only when a tool is called; `/health`
-does not contact Trading 212.
+does not contact Trading 212. LAN clients can connect directly. ChatGPT reaches
+the same private `/mcp` endpoint through the outbound-only OpenAI Secure MCP
+Tunnel; port 8000 is not exposed publicly.
 
 ## MCP tools
 

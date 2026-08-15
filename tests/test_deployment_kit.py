@@ -344,3 +344,17 @@ def test_root_readme_links_the_complete_deployment_kit() -> None:
         "deploy/qnap/README.md",
     ):
         assert f"]({target})" in readme
+
+
+def test_root_architecture_includes_the_private_tunnel_route() -> None:
+    readme = (ROOT / "README.md").read_text()
+    architecture = readme.split("## Architecture", 1)[1].split("## MCP tools", 1)[0]
+
+    for component in (
+        "OpenAI tunnel control plane",
+        "tunnel-client on QNAP",
+        "LAN-only Streamable HTTP",
+        "Trading 212 MCP server",
+        "Trading 212 Public API",
+    ):
+        assert component in architecture
