@@ -1,0 +1,49 @@
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "trading212-mcp"
+version = "0.1.0"
+description = "Strictly read-only Trading 212 MCP server"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "httpx==0.28.1",
+  "mcp==2.0.0",
+  "pydantic==2.13.4",
+  "uvicorn==0.52.3",
+]
+
+[project.optional-dependencies]
+dev = [
+  "build==1.5.0",
+  "mypy==1.20.2",
+  "pytest==8.4.2",
+  "pytest-asyncio==1.4.0",
+  "ruff==0.16.3",
+]
+
+[project.scripts]
+trading212-mcp = "trading212_mcp.server:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/trading212_mcp"]
+
+[tool.pytest.ini_options]
+addopts = "--strict-markers --strict-config"
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+packages = ["trading212_mcp"]
+mypy_path = "src"
