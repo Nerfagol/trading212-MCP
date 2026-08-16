@@ -5,9 +5,19 @@ build-backend = "hatchling.build"
 [project]
 name = "trading212-mcp"
 version = "0.1.0"
-description = "Strictly read-only Trading 212 MCP server"
+description = "Strictly read-only, self-hosted Trading 212 MCP server"
 readme = "README.md"
 requires-python = ">=3.12"
+license = "MIT"
+license-files = ["LICENSE"]
+keywords = ["trading212", "mcp", "model-context-protocol", "chatgpt", "portfolio"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Office/Business :: Financial :: Investment",
+]
 dependencies = [
   "httpx==0.28.1",
   "mcp==2.0.0",
@@ -26,6 +36,12 @@ dev = [
 
 [project.scripts]
 trading212-mcp = "trading212_mcp.server:main"
+
+[project.urls]
+Homepage = "https://github.com/Nerfagol/trading212-MCP"
+Source = "https://github.com/Nerfagol/trading212-MCP"
+Issues = "https://github.com/Nerfagol/trading212-MCP/issues"
+Security = "https://github.com/Nerfagol/trading212-MCP/security"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/trading212_mcp"]
