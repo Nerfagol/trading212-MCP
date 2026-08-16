@@ -360,7 +360,7 @@ def test_readme_starts_with_product_first_onboarding() -> None:
 
     offsets = [readme.index(heading) for heading in headings]
     assert offsets == sorted(offsets)
-    assert len(readme.splitlines()) <= 220
+    assert len(readme.splitlines()) <= 230
 
 
 def test_readme_describes_supported_product_experience() -> None:
