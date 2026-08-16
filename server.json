@@ -13,7 +13,7 @@
   "packages": [
     {
       "registryType": "oci",
-      "identifier": "ghcr.io/nerfagol/trading212-mcp:0.1.0",
+      "identifier": "ghcr.io/nerfagol/trading212-mcp@sha256:77d07af064438a286fa78c6effebb0a8fe6a8e31c58760d271778b967dac1da7",
       "runtimeHint": "docker",
       "runtimeArguments": [
         {

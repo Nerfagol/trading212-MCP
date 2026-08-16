@@ -9,6 +9,7 @@ from urllib.parse import parse_qsl, urlsplit
 
 import httpx
 
+from trading212_mcp import __version__
 from trading212_mcp.config import Settings
 
 JsonObject = dict[str, Any]
@@ -97,7 +98,10 @@ class Trading212Client:
         self._http = httpx.AsyncClient(
             auth=httpx.BasicAuth(settings.api_key, settings.api_secret),
             base_url=api_origin,
-            headers={"Accept": "application/json", "User-Agent": "trading212-mcp/0.1.0"},
+            headers={
+                "Accept": "application/json",
+                "User-Agent": f"trading212-mcp/{__version__}",
+            },
             timeout=httpx.Timeout(10.0, connect=5.0, pool=5.0),
             transport=transport,
         )

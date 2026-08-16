@@ -8,7 +8,11 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 REGISTRY_NAME = "io.github.nerfagol/trading212-mcp"
-IMAGE = "ghcr.io/nerfagol/trading212-mcp:0.1.0"
+RELEASE_IMAGE = "ghcr.io/nerfagol/trading212-mcp:0.1.0"
+REGISTRY_IMAGE = (
+    "ghcr.io/nerfagol/trading212-mcp@"
+    "sha256:77d07af064438a286fa78c6effebb0a8fe6a8e31c58760d271778b967dac1da7"
+)
 EXPECTED_TOOLS = {
     "get_account",
     "get_cash",
@@ -51,7 +55,7 @@ def test_readme_first_screen_states_product_and_security_model() -> None:
 def test_readme_has_secure_versioned_ghcr_quick_start_and_discovery_terms() -> None:
     readme = read("README.md")
 
-    assert f"docker pull {IMAGE}" in readme
+    assert f"docker pull {RELEASE_IMAGE}" in readme
     assert "docker run" in readme
     assert "-p 127.0.0.1:8000:8000" in readme
     assert "--read-only" in readme
@@ -123,7 +127,8 @@ def test_dockerfile_has_consistent_oci_and_registry_metadata() -> None:
     for label in expected_labels:
         assert label in dockerfile
     assert f'io.modelcontextprotocol.server.name="{REGISTRY_NAME}"' in dockerfile
-    assert "ARG VERSION=0.1.0" in dockerfile
+    assert "ARG VERSION=0.0.0+local" in dockerfile
+    assert '"trading212-mcp==${VERSION}"' not in dockerfile
     assert 'USER 10001:10001' in dockerfile
     assert "HEALTHCHECK" in dockerfile
 
@@ -145,7 +150,7 @@ def test_server_json_matches_current_registry_schema_and_release_image() -> None
     assert len(metadata["packages"]) == 1
     package = metadata["packages"][0]
     assert package["registryType"] == "oci"
-    assert package["identifier"] == IMAGE
+    assert package["identifier"] == REGISTRY_IMAGE
     assert package["runtimeHint"] == "docker"
     assert any(
         argument.get("name") == "--publish"
@@ -176,12 +181,11 @@ def test_release_version_and_python_package_metadata_are_consistent() -> None:
     assert project["license"] == "MIT"
     assert project["urls"]["Source"] == "https://github.com/Nerfagol/trading212-MCP"
     assert project["urls"]["Issues"].endswith("/issues")
-    assert f'__version__ = "{version}"' in read("src/trading212_mcp/__init__.py")
-    assert f'version="{version}"' in read("src/trading212_mcp/server.py")
-    assert f"trading212-mcp/{version}" in read("src/trading212_mcp/client.py")
-    assert f"ARG VERSION={version}" in read("Dockerfile")
     assert f'"version": "{version}"' in read("server.json")
-    assert f"ghcr.io/nerfagol/trading212-mcp:{version}" in read("server.json")
+    assert "package_version=" in read(".github/workflows/release-image.yml")
+    assert "VERSION=${{ steps.version.outputs.version }}" in read(
+        ".github/workflows/release-image.yml"
+    )
 
 
 def test_repository_policy_and_submission_material_are_present() -> None:
