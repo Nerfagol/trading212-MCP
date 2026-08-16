@@ -10,7 +10,8 @@ the Trading 212 API key or secret.
 **Read-only by construction · API keys stay on your server · No trading actions · Docker & QNAP ready**
 
 The implementation cannot buy, sell, place, create, cancel, update, or modify orders.
-It contains only six explicitly allowlisted Trading 212 `GET` endpoints and no generic HTTP client.
+It contains only six explicitly allowlisted Trading 212 `GET` endpoints and exposes no
+generic request or proxy method.
 
 ```mermaid
 flowchart LR
@@ -67,8 +68,8 @@ not provide financial advice or perform trades.
 
 ## 🔒 Read-only by design
 
-The client contains only six allowlisted Trading 212 `GET` endpoints. There is
-no generic HTTP request method and no code for buying, selling, creating,
+The client contains only six allowlisted Trading 212 `GET` endpoints. It exposes
+no generic request or proxy method and contains no code for buying, selling, creating,
 placing, cancelling, modifying, or updating an order.
 
 MCP annotations also mark every tool read-only, but the enforced boundary is
@@ -95,7 +96,8 @@ and its automated write-surface checks.
 
 ## 🐳 Quick start: local Docker
 
-Use the immutable release tag for a reproducible local deployment. Keep the host
+Use the versioned release tag for a reproducible local deployment. Users requiring
+strict artifact immutability can pin the image by its OCI digest. Keep the host
 port on loopback unless you have deliberately configured a trusted LAN binding.
 
 ```bash

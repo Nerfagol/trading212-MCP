@@ -16,6 +16,7 @@ from pydantic import Field
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
+from trading212_mcp import __version__
 from trading212_mcp.client import Trading212Client, Trading212Error
 from trading212_mcp.config import ConfigError, Settings
 
@@ -107,7 +108,7 @@ def create_server(client_factory: ClientFactory | None = None) -> MCPServer[Any]
             "Use exact Trading 212 tickers. Historical calls return one page; pass the returned "
             "next_page_path back to the same tool to continue."
         ),
-        version="0.1.0",
+        version=__version__,
         middleware=[_StrictToolArguments()],
     )
 
