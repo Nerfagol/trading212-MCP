@@ -30,7 +30,7 @@ Run the complete local verification matrix:
 ```bash
 pytest
 ruff check .
-mypy
+mypy src tests
 python -m build
 ```
 

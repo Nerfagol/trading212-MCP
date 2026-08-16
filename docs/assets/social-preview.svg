@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-labelledby="title description">
+  <title id="title">Trading 212 Read-Only MCP Server</title>
+  <desc id="description">Secure self-hosted portfolio access for ChatGPT and MCP clients</desc>
+  <rect width="1280" height="640" fill="#f7faf9"/>
+  <rect x="56" y="52" width="1168" height="536" rx="8" fill="#ffffff" stroke="#d7e0dc" stroke-width="2"/>
+  <rect x="56" y="52" width="16" height="536" fill="#16856b"/>
+
+  <g fill="none" stroke="#16856b" stroke-width="5" stroke-linecap="round">
+    <path d="M142 182 H246"/>
+    <path d="M194 130 V234"/>
+    <circle cx="194" cy="182" r="70"/>
+    <path d="M141 402 L194 354 L247 402 L300 332"/>
+  </g>
+  <g fill="#16856b">
+    <circle cx="141" cy="402" r="9"/>
+    <circle cx="194" cy="354" r="9"/>
+    <circle cx="247" cy="402" r="9"/>
+    <circle cx="300" cy="332" r="9"/>
+  </g>
+
+  <text x="372" y="178" fill="#14251f" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="700" letter-spacing="0">SELF-HOSTED · MODEL CONTEXT PROTOCOL</text>
+  <text x="372" y="270" fill="#10211b" font-family="Inter, Arial, sans-serif" font-size="58" font-weight="700" letter-spacing="0">Trading 212 Read-Only</text>
+  <text x="372" y="338" fill="#10211b" font-family="Inter, Arial, sans-serif" font-size="58" font-weight="700" letter-spacing="0">MCP Server</text>
+  <text x="372" y="398" fill="#41534c" font-family="Inter, Arial, sans-serif" font-size="26" letter-spacing="0">Secure self-hosted portfolio access for ChatGPT &amp; MCP clients</text>
+
+  <g font-family="Inter, Arial, sans-serif" font-size="18" font-weight="700" letter-spacing="0">
+    <rect x="372" y="450" width="132" height="42" rx="6" fill="#d9f2e8"/>
+    <text x="394" y="477" fill="#0c664f">READ-ONLY</text>
+    <rect x="518" y="450" width="102" height="42" rx="6" fill="#e8eef1"/>
+    <text x="539" y="477" fill="#31424a">Docker</text>
+    <rect x="634" y="450" width="88" height="42" rx="6" fill="#e8eef1"/>
+    <text x="654" y="477" fill="#31424a">QNAP</text>
+    <rect x="736" y="450" width="220" height="42" rx="6" fill="#e8eef1"/>
+    <text x="757" y="477" fill="#31424a">Secure MCP Tunnel</text>
+  </g>
+
+  <text x="372" y="544" fill="#64756e" font-family="Inter, Arial, sans-serif" font-size="16" letter-spacing="0">Independent project · not affiliated with or endorsed by Trading 212</text>
+</svg>
