@@ -1,0 +1,100 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.nerfagol/trading212-mcp",
+  "title": "Trading 212 Read-Only MCP Server",
+  "description": "Read-only Trading 212 account, portfolio, orders, transactions, and dividend data.",
+  "version": "0.1.0",
+  "websiteUrl": "https://github.com/Nerfagol/trading212-MCP",
+  "repository": {
+    "url": "https://github.com/Nerfagol/trading212-MCP",
+    "source": "github",
+    "id": "1335416380"
+  },
+  "packages": [
+    {
+      "registryType": "oci",
+      "identifier": "ghcr.io/nerfagol/trading212-mcp:0.1.0",
+      "runtimeHint": "docker",
+      "runtimeArguments": [
+        {
+          "type": "named",
+          "name": "--publish",
+          "value": "127.0.0.1:8000:8000"
+        },
+        {
+          "type": "named",
+          "name": "--read-only",
+          "value": "true"
+        },
+        {
+          "type": "named",
+          "name": "--tmpfs",
+          "value": "/tmp:size=16m,mode=1777"
+        },
+        {
+          "type": "named",
+          "name": "--cap-drop",
+          "value": "ALL"
+        },
+        {
+          "type": "named",
+          "name": "--security-opt",
+          "value": "no-new-privileges"
+        },
+        {
+          "type": "named",
+          "name": "--init",
+          "value": "true"
+        }
+      ],
+      "transport": {
+        "type": "streamable-http",
+        "url": "http://127.0.0.1:8000/mcp"
+      },
+      "environmentVariables": [
+        {
+          "name": "T212_API_KEY",
+          "description": "Trading 212 API key. Use a read-only key and never share it with the MCP client.",
+          "format": "string",
+          "isRequired": true,
+          "isSecret": true
+        },
+        {
+          "name": "T212_API_SECRET",
+          "description": "Trading 212 API secret. Store it only in the container environment.",
+          "format": "string",
+          "isRequired": true,
+          "isSecret": true
+        },
+        {
+          "name": "T212_ENV",
+          "description": "Trading 212 environment. Start with demo before selecting live.",
+          "format": "string",
+          "isRequired": false,
+          "isSecret": false,
+          "choices": [
+            "demo",
+            "live"
+          ],
+          "default": "demo"
+        },
+        {
+          "name": "MCP_ALLOWED_HOSTS",
+          "description": "Comma-separated Host header allowlist for Streamable HTTP.",
+          "format": "string",
+          "isRequired": false,
+          "isSecret": false,
+          "default": "127.0.0.1:*,localhost:*,[::1]:*,trading212-mcp:*"
+        },
+        {
+          "name": "MCP_ALLOWED_ORIGINS",
+          "description": "Comma-separated Origin allowlist for Streamable HTTP.",
+          "format": "string",
+          "isRequired": false,
+          "isSecret": false,
+          "default": "http://127.0.0.1:*,http://localhost:*,http://[::1]:*"
+        }
+      ]
+    }
+  ]
+}

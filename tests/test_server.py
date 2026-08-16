@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 from types import TracebackType
-from typing import Any, Self
+from typing import Any, Self, cast
 
 import httpx
 import pytest
 from mcp import Client
 from mcp.server import MCPServer
 
+from trading212_mcp.client import Trading212Client
 from trading212_mcp.server import create_app, create_server
 
 from .test_client import ACCOUNT, DIVIDEND, ORDER, POSITION, TRANSACTION
@@ -56,7 +57,11 @@ class FakeReadOnlyClient:
         ticker: str | None = None,
         next_page_path: str | None = None,
     ) -> dict[str, Any]:
-        arguments = {"limit": limit, "ticker": ticker, "next_page_path": next_page_path}
+        arguments: dict[str, object] = {
+            "limit": limit,
+            "ticker": ticker,
+            "next_page_path": next_page_path,
+        }
         self.calls.append(("get_order_history", arguments))
         return {"items": [{"order": ORDER}], "next_page_path": None}
 
@@ -66,7 +71,7 @@ class FakeReadOnlyClient:
         limit: int = 20,
         next_page_path: str | None = None,
     ) -> dict[str, Any]:
-        arguments = {"limit": limit, "next_page_path": next_page_path}
+        arguments: dict[str, object] = {"limit": limit, "next_page_path": next_page_path}
         self.calls.append(("get_transactions", arguments))
         return {"items": [TRANSACTION], "next_page_path": None}
 
@@ -77,14 +82,18 @@ class FakeReadOnlyClient:
         ticker: str | None = None,
         next_page_path: str | None = None,
     ) -> dict[str, Any]:
-        arguments = {"limit": limit, "ticker": ticker, "next_page_path": next_page_path}
+        arguments: dict[str, object] = {
+            "limit": limit,
+            "ticker": ticker,
+            "next_page_path": next_page_path,
+        }
         self.calls.append(("get_dividends", arguments))
         return {"items": [DIVIDEND], "next_page_path": None}
 
 
 def server_and_fake() -> tuple[MCPServer[Any], FakeReadOnlyClient]:
     fake = FakeReadOnlyClient()
-    return create_server(client_factory=lambda: fake), fake  # type: ignore[arg-type]
+    return create_server(client_factory=lambda: cast(Trading212Client, fake)), fake
 
 
 @pytest.mark.asyncio
