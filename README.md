@@ -14,17 +14,23 @@ It contains only six explicitly allowlisted Trading 212 `GET` endpoints and no g
 
 ```mermaid
 flowchart LR
-    Client["ChatGPT / MCP client<br/>No Trading 212 credentials"]
-    Control["OpenAI Secure MCP Tunnel<br/>optional remote route"]
-    Tunnel["Tunnel client<br/>private environment"]
-    Server["Self-hosted trading212-MCP<br/>credentials stored here"]
-    API["Trading 212 Public API<br/>allowlisted GET endpoints only"]
+    Remote["ChatGPT / remote MCP client<br/>No Trading 212 credentials"]
+    OpenAI["OpenAI Secure MCP Tunnel"]
 
-    Client -->|"local or trusted LAN"| Server
-    Client -.->|"remote MCP"| Control
-    Tunnel -->|"outbound HTTPS"| Control
-    Tunnel -->|"private /mcp"| Server
-    Server -->|"Basic auth; GET only"| API
+    subgraph Private["Private / trusted environment"]
+        Local["Local MCP client"]
+        Tunnel["tunnel-client"]
+        Server["trading212-MCP<br/>Trading 212 credentials stay here"]
+
+        Local -->|"loopback / trusted LAN"| Server
+        Tunnel -->|"private /mcp"| Server
+    end
+
+    API["Trading 212 Public API<br/>6 allowlisted GET endpoints"]
+
+    Remote -->|"remote MCP"| OpenAI
+    OpenAI <-->|"outbound-initiated HTTPS"| Tunnel
+    Server -->|"Basic auth · GET only"| API
 ```
 
 The tunnel is optional. When used, its connection is initiated outbound from the
