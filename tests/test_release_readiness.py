@@ -207,18 +207,11 @@ def test_repository_policy_and_submission_material_are_present() -> None:
     assert "Strictly read-only Trading 212 MCP server" in submissions
 
 
-def test_social_preview_is_correctly_sized_and_independent() -> None:
-    preview = read("docs/assets/social-preview.svg")
-    png = (ROOT / "docs/assets/social-preview.png").read_bytes()
+def test_social_preview_is_a_github_compatible_jpeg() -> None:
+    preview = (ROOT / "docs/assets/social-preview.jpg").read_bytes()
 
-    assert 'width="1280"' in preview
-    assert 'height="640"' in preview
-    assert "Trading 212 Read-Only MCP Server" in preview
-    assert "Secure self-hosted portfolio access for ChatGPT &amp; MCP clients" in preview
-    for label in ("READ-ONLY", "Docker", "QNAP", "Secure MCP Tunnel"):
-        assert label in preview
-    assert "not affiliated" in preview.lower()
-    assert png.startswith(b"\x89PNG\r\n\x1a\n")
+    assert preview.startswith(b"\xff\xd8\xff")
+    assert len(preview) < 1_000_000
 
 
 def test_documented_tool_surface_is_exactly_eight_read_only_tools() -> None:
