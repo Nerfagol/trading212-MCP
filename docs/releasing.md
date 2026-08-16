@@ -3,6 +3,11 @@
 Release operations are intentionally separate from normal pull-request CI.
 Only a published GitHub Release can run the GHCR publishing workflow.
 
+`pyproject.toml` is the source of truth for the Python package version. Runtime
+MCP metadata and the HTTP User-Agent read the installed distribution version.
+`server.json` remains explicit release metadata, and the test suite requires its
+version to match `pyproject.toml`.
+
 ## Release gate
 
 Before tagging a release, verify the final `main` commit:
@@ -28,7 +33,13 @@ publishes:
 - `ghcr.io/nerfagol/trading212-mcp:latest`
 
 The versioned tag is the reproducible installation reference. `latest` is only
-a convenience pointer for the newest stable release.
+a convenience pointer for the newest stable release. OCI tags are mutable; users
+requiring strict artifact immutability can pin the published manifest digest.
+
+The release workflow verifies that the GitHub tag matches `pyproject.toml` and
+passes that version to the image's OCI label. After a multi-platform image is
+published, retrieve its index digest from GHCR before using a digest reference in
+`server.json`, then run the Registry validation step below.
 
 ## MCP Registry validation
 
