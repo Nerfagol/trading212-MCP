@@ -16,3 +16,4 @@ dist/
 deploy/qnap/tunnel/secrets/
 deploy/qnap/tunnel/state/
 deploy/qnap/tunnel/*.log
+docs/superpowers/
