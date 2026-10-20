@@ -22,6 +22,8 @@ EXPECTED_TOOLS = {
     "get_order_history",
     "get_transactions",
     "get_dividends",
+    "search_instruments", "get_exchanges", "get_pies", "get_pie",
+    "list_snapshots", "get_snapshot",
 }
 
 
@@ -214,7 +216,7 @@ def test_social_preview_is_a_github_compatible_jpeg() -> None:
     assert len(preview) < 1_000_000
 
 
-def test_documented_tool_surface_is_exactly_eight_read_only_tools() -> None:
+def test_documented_tool_surface_is_exactly_fourteen_read_only_tools() -> None:
     tool_reference = read("docs/mcp-tools.md")
     headings = set(re.findall(r"^## `([^`]+)`", tool_reference, flags=re.MULTILINE))
 

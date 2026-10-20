@@ -46,6 +46,9 @@ Security = "https://github.com/Nerfagol/trading212-MCP/security"
 [tool.hatch.build.targets.wheel]
 packages = ["src/trading212_mcp"]
 
+[tool.hatch.build.targets.sdist]
+exclude = ["/data", "/AGENTS.md", "/docs/superpowers", "/.superpowers"]
+
 [tool.pytest.ini_options]
 addopts = "--strict-markers --strict-config"
 asyncio_mode = "auto"

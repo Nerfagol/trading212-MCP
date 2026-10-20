@@ -10,6 +10,8 @@ import sys
 from pathlib import Path
 from types import ModuleType
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 QNAP = ROOT / "deploy" / "qnap"
 TUNNEL = QNAP / "tunnel"
@@ -23,6 +25,12 @@ EXPECTED_TOOLS = {
     "get_order_history",
     "get_transactions",
     "get_dividends",
+    "search_instruments",
+    "get_exchanges",
+    "get_pies",
+    "get_pie",
+    "list_snapshots",
+    "get_snapshot",
 }
 
 SCRIPTS = (
@@ -132,7 +140,14 @@ def _copy_deployment_tree(tmp_path: Path) -> Path:
 def _fake_docker(tmp_path: Path) -> tuple[Path, Path]:
     docker = tmp_path / "docker"
     log = tmp_path / "docker.log"
-    docker.write_text('#!/bin/sh\nprintf "%s\\n" "$*" >> "$DOCKER_LOG"\n')
+    docker.write_text(
+        '#!/bin/sh\n'
+        'if [ "$1" = container ]; then\n'
+        '  [ "${SNAPSHOTS_ENABLED:-}" = 1 ] && printf "/trading212-snapshots\\n"\n'
+        '  exit 0\n'
+        'fi\n'
+        'printf "%s\\n" "$*" >> "$DOCKER_LOG"\n'
+    )
     docker.chmod(0o700)
     return docker, log
 
@@ -203,6 +218,24 @@ def test_deploy_runs_only_quiet_scoped_compose_commands(tmp_path: Path) -> None:
     assert calls[1].endswith("up -d --build")
     assert "config --quiet" in calls[2]
     assert calls[3].endswith("up -d")
+
+
+@pytest.mark.parametrize("operation", ["deploy", "update"])
+@pytest.mark.parametrize("target", ["snapshots", "mcp"])
+def test_snapshot_target_includes_overlay_and_only_project_services(
+    tmp_path: Path, operation: str, target: str,
+) -> None:
+    project = _copy_deployment_tree(tmp_path)
+    (project / ".env").write_text("configured\n")
+    docker, log = _fake_docker(tmp_path)
+    env = os.environ | {"DOCKER_BIN": str(docker), "DOCKER_LOG": str(log),
+                        "SNAPSHOTS_ENABLED": "1"}
+    subprocess.run(["sh", str(project / "deploy" / "qnap" / f"{operation}.sh"), target],
+                   env=env, check=True)
+    calls = log.read_text().splitlines()
+    assert calls
+    assert all("docker-compose.snapshots.yml" in call for call in calls)
+    assert calls[-1].endswith("trading212-mcp trading212-snapshots")
 
 
 def test_update_uses_build_or_pull_without_cleanup(tmp_path: Path) -> None:
@@ -371,7 +404,7 @@ def test_readme_describes_supported_product_experience() -> None:
         "not a browser dashboard",
         "demo",
         "live",
-        "eight read-only tools",
+        "fourteen read-only tools",
         "sensitive financial data",
     ):
         assert expectation in readme
@@ -397,7 +430,7 @@ def test_readme_examples_map_only_to_supported_read_capabilities() -> None:
 def test_root_readme_lists_exact_read_only_tool_surface() -> None:
     readme = (ROOT / "README.md").read_text()
     tools = readme.split("## 🧰 MCP tools", 1)[1].split("\n## ", 1)[0]
-    documented = set(re.findall(r"`(get_[a-z_]+)`", tools))
+    documented = set(re.findall(r"`((?:get|list|search)_[a-z_]+)`", tools))
 
     assert documented == EXPECTED_TOOLS
 
@@ -442,7 +475,7 @@ def test_focused_documents_own_configuration_security_and_development() -> None:
         assert f"`{variable}`" in configuration
 
     for statement in (
-        "six allowlisted",
+        "nine fixed paths",
         "GET",
         "no generic",
         "OpenAI tunnel control plane",

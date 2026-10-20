@@ -55,7 +55,7 @@ npx @modelcontextprotocol/inspector@latest
 ```
 
 Choose **Streamable HTTP**, enter `http://127.0.0.1:8000/mcp`, connect, and open
-**Tools**. Confirm the exact eight names in the [MCP tool reference](mcp-tools.md)
+**Tools**. Confirm the exact fourteen names in the [MCP tool reference](mcp-tools.md)
 and their read-only annotations. Discovery does not call Trading 212; a real API
 request occurs only when a financial tool is invoked.
 

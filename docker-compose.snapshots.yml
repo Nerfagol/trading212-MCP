@@ -1,0 +1,46 @@
+# Opt in with: docker compose -f docker-compose.yml -f docker-compose.snapshots.yml up -d
+services:
+  trading212-mcp:
+    environment:
+      T212_SNAPSHOT_DIR: /snapshots
+    volumes:
+      - type: bind
+        source: ${T212_SNAPSHOT_HOST_DIR:-./data/snapshots}
+        target: /snapshots
+        read_only: true
+        bind:
+          create_host_path: false
+
+  trading212-snapshots:
+    build:
+      context: .
+    image: trading212-mcp:local
+    container_name: trading212-snapshots
+    command: ["python", "-m", "trading212_mcp.collector"]
+    restart: unless-stopped
+    init: true
+    user: "10001:10001"
+    environment:
+      T212_API_KEY: "${T212_API_KEY:?Set T212_API_KEY in .env}"
+      T212_API_SECRET: "${T212_API_SECRET:?Set T212_API_SECRET in .env}"
+      T212_ENV: "${T212_ENV:-demo}"
+      T212_SNAPSHOT_DIR: /snapshots
+    volumes:
+      - type: bind
+        source: ${T212_SNAPSHOT_HOST_DIR:-./data/snapshots}
+        target: /snapshots
+        bind:
+          create_host_path: false
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "python", "-m", "trading212_mcp.collector", "--health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 60s
+      retries: 3

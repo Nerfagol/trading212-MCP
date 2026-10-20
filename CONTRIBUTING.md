@@ -1,7 +1,7 @@
 # Contributing
 
-Contributions are welcome when they preserve the project's small, stateless,
-strictly read-only design.
+Contributions are welcome when they preserve the project's small, strictly
+read-only Trading 212 interface. Optional CSV storage has a separate collector.
 
 ## Development setup
 

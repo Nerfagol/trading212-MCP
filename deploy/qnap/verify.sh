@@ -5,7 +5,7 @@ SCRIPT_DIR=$(CDPATH= cd "$(dirname "$0")" && pwd)
 TUNNEL_DIR="$SCRIPT_DIR/tunnel"
 
 usage() {
-    printf 'Usage: %s [mcp|tunnel|all]\n' "$0" >&2
+    printf 'Usage: %s [mcp|snapshots|tunnel|all]\n' "$0" >&2
     exit 2
 }
 
@@ -99,7 +99,28 @@ verify_tunnel() {
 
 DOCKER=$(find_docker)
 
+verify_snapshots() {
+    verify_mcp
+    require_running trading212-snapshots
+    "$DOCKER" exec trading212-snapshots python -m trading212_mcp.collector --health
+    reader=$("$DOCKER" inspect --format '{{range .Mounts}}{{if eq .Destination "/snapshots"}}{{.RW}}{{end}}{{end}}' trading212-mcp)
+    writer=$("$DOCKER" inspect --format '{{range .Mounts}}{{if eq .Destination "/snapshots"}}{{.RW}}{{end}}{{end}}' trading212-snapshots)
+    [ "$reader" = false ] && [ "$writer" = true ] || {
+        printf '%s\n' 'Snapshot mount permissions: FAIL' >&2
+        exit 1
+    }
+    ports=$("$DOCKER" inspect --format '{{json .HostConfig.PortBindings}}' trading212-snapshots)
+    [ "$ports" = null ] || [ "$ports" = '{}' ] || {
+        printf '%s\n' 'Collector has published ports: FAIL' >&2
+        exit 1
+    }
+    printf '%s\n' 'Snapshot collector health and mount permissions: PASS'
+}
+
 case "${1:-all}" in
+    snapshots)
+        verify_snapshots
+        ;;
     mcp)
         verify_mcp
         ;;

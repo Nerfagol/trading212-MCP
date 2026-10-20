@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import hashlib
+import re
 from collections.abc import Mapping
+from decimal import Decimal
 from types import TracebackType
 from typing import Any, Self, cast
 from urllib.parse import parse_qsl, urlsplit
@@ -66,6 +69,9 @@ _ORDERS_PATH = "/api/v0/equity/orders"
 _ORDER_HISTORY_PATH = "/api/v0/equity/history/orders"
 _TRANSACTIONS_PATH = "/api/v0/equity/history/transactions"
 _DIVIDENDS_PATH = "/api/v0/equity/history/dividends"
+_INSTRUMENTS_PATH = "/api/v0/equity/metadata/instruments"
+_EXCHANGES_PATH = "/api/v0/equity/metadata/exchanges"
+_PIES_PATH = "/api/v0/equity/pies"
 
 _READ_ONLY_PATHS = frozenset(
     {
@@ -75,6 +81,9 @@ _READ_ONLY_PATHS = frozenset(
         _ORDER_HISTORY_PATH,
         _TRANSACTIONS_PATH,
         _DIVIDENDS_PATH,
+        _INSTRUMENTS_PATH,
+        _EXCHANGES_PATH,
+        _PIES_PATH,
     }
 )
 
@@ -93,7 +102,12 @@ class Trading212Client:
         settings: Settings,
         *,
         transport: httpx.AsyncBaseTransport | None = None,
+        decimal_json: bool = False,
     ) -> None:
+        self._decimal_json = decimal_json
+        self.metadata_namespace = hashlib.sha256(
+            repr((settings.base_url, settings.api_key, settings.api_secret)).encode()
+        ).digest()
         api_origin = httpx.URL(settings.base_url).copy_with(path="/")
         self._http = httpx.AsyncClient(
             auth=httpx.BasicAuth(settings.api_key, settings.api_secret),
@@ -147,6 +161,29 @@ class Trading212Client:
     async def get_orders(self) -> JsonList:
         """Retrieve all current pending orders."""
         return await self._get_collection(_ORDERS_PATH)
+
+    async def get_instruments(self) -> JsonList:
+        """Retrieve the accessible instrument catalog."""
+        return await self._get_collection(_INSTRUMENTS_PATH)
+
+    async def get_exchanges(self) -> JsonList:
+        """Retrieve exchanges and their working schedules."""
+        return await self._get_collection(_EXCHANGES_PATH)
+
+    async def get_pies(self) -> JsonList:
+        """Retrieve pie summaries from the deprecated Pies API."""
+        return await self._get_collection(_PIES_PATH)
+
+    async def get_pie(self, pie_id: int) -> JsonObject:
+        """Retrieve a pie through a strictly constrained numeric route."""
+        if type(pie_id) is not int or not 1 <= pie_id < 2**63:
+            raise ValueError("pie_id must be a positive 64-bit integer")
+        payload = await self._get_json(f"{_PIES_PATH}/{pie_id}")
+        if (not isinstance(payload, dict) or not isinstance(payload.get("settings"), dict)
+                or not isinstance(payload.get("instruments"), list)
+                or not all(isinstance(item, dict) for item in payload["instruments"])):
+            raise MalformedResponseError("Trading 212 returned a malformed response")
+        return payload
 
     async def get_order_history(
         self,
@@ -247,8 +284,15 @@ class Trading212Client:
         params: Mapping[str, str | int] | None = None,
     ) -> object:
         parsed = urlsplit(path)
-        if parsed.scheme or parsed.netloc or parsed.path not in _READ_ONLY_PATHS:
+        pie_match = re.fullmatch(r"/api/v0/equity/pies/([1-9][0-9]{0,18})", parsed.path)
+        pie_route = pie_match is not None and int(pie_match[1]) < 2**63
+        if (parsed.scheme or parsed.netloc or parsed.fragment
+                or (parsed.path not in _READ_ONLY_PATHS and not pie_route)):
             raise ValueError("Path is not in the read-only allowlist")
+        if (pie_route or parsed.path in {_PIES_PATH, _INSTRUMENTS_PATH, _EXCHANGES_PATH}) and (
+            parsed.query or params
+        ):
+            raise ValueError("Unexpected query parameters")
 
         try:
             response = await self._http.get(path, params=params)
@@ -259,7 +303,7 @@ class Trading212Client:
 
         self._raise_for_status(response)
         try:
-            return response.json()
+            return response.json(parse_float=Decimal) if self._decimal_json else response.json()
         except ValueError:
             raise MalformedResponseError("Trading 212 returned a malformed response") from None
 
@@ -332,4 +376,4 @@ class Trading212Client:
 
     @staticmethod
     def _is_number(value: object) -> bool:
-        return isinstance(value, int | float) and not isinstance(value, bool)
+        return isinstance(value, int | float | Decimal) and not isinstance(value, bool)

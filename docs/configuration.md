@@ -28,6 +28,11 @@ official [API key instructions](https://helpcentre.trading212.com/hc/en-us/artic
 | `MCP_PORT` | Compose only | `8000` | Published host port |
 | `MCP_ALLOWED_HOSTS` | no | local and container hosts | Comma-separated MCP Host-header allowlist |
 | `MCP_ALLOWED_ORIGINS` | no | local HTTP origins | Comma-separated browser Origin allowlist |
+| `T212_SNAPSHOT_DIR` | collector only | unset | Container/process directory for CSV storage; overlay sets `/snapshots` |
+| `T212_SNAPSHOT_HOST_DIR` | snapshot Compose only | `./data/snapshots` | Existing private host directory mounted into both services |
+
+See [CSV snapshots](snapshots.md) for opt-in setup, four-hour UTC scheduling, and
+storage permissions. Snapshot tools remain discoverable when storage is unset.
 
 Start from the sanitized template:
 
@@ -54,7 +59,7 @@ MCP tool surface.
 Docker Compose publishes the service on loopback by default:
 
 ```bash
-docker compose config
+docker compose config --quiet
 docker compose up -d --build
 docker compose ps
 curl --fail --silent http://127.0.0.1:8000/health

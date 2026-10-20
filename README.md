@@ -10,8 +10,8 @@ the Trading 212 API key or secret.
 **Read-only by construction · API keys stay on your server · No trading actions · Docker & QNAP ready**
 
 The implementation cannot buy, sell, place, create, cancel, update, or modify orders.
-It contains only six explicitly allowlisted Trading 212 `GET` endpoints and exposes no
-generic request or proxy method.
+It contains only explicitly allowlisted Trading 212 `GET` endpoints and exposes
+no generic request or proxy method.
 
 ```mermaid
 flowchart LR
@@ -27,7 +27,7 @@ flowchart LR
         Tunnel -->|"private /mcp"| Server
     end
 
-    API["Trading 212 Public API<br/>6 allowlisted GET endpoints"]
+    API["Trading 212 Public API<br/>allowlisted GET endpoints"]
 
     Remote -->|"remote MCP"| OpenAI
     OpenAI <-->|"outbound-initiated HTTPS"| Tunnel
@@ -45,11 +45,10 @@ or a trusted LAN. In both cases, credentials remain inside the self-hosted serve
 - Open positions, quantities, prices, current values, and unrealized P/L
 - Pending orders plus paginated order history
 - Deposits, withdrawals, fees, transfers, and paid dividends
+- Instrument search, exchanges, pie reads, and optional four-hour CSV snapshots
 - Structured responses that an MCP client can use directly in conversation
 
 ## 💬 Example questions
-
-Once connected, you can ask:
 
 > Give me an account summary.
 
@@ -63,12 +62,9 @@ Once connected, you can ask:
 
 > What dividends have been paid?
 
-These questions map directly to implemented read operations. The server does
-not provide financial advice or perform trades.
-
 ## 🔒 Read-only by design
 
-The client contains only six allowlisted Trading 212 `GET` endpoints. It exposes
+The client contains only allowlisted Trading 212 `GET` endpoints. It exposes
 no generic request or proxy method and contains no code for buying, selling, creating,
 placing, cancelling, modifying, or updating an order.
 
@@ -78,7 +74,7 @@ and its automated write-surface checks.
 
 ## ✅ What to expect
 
-- **Eight read-only tools** returning structured account data
+- **Fourteen read-only tools** returning structured account data
 - **Demo and Live support**, with Demo recommended for the first run
 - **Paginated history**, returned one bounded page per tool call
 - **No frontend**: this is not a browser dashboard; your MCP client is the interface
@@ -96,9 +92,8 @@ and its automated write-surface checks.
 
 ## 🐳 Quick start: local Docker
 
-Use the versioned release tag for a reproducible local deployment. Users requiring
-strict artifact immutability can pin the image by its OCI digest. Keep the host
-port on loopback unless you have deliberately configured a trusted LAN binding.
+The released image below has the original eight tools. The six new tools and
+snapshots require a source build until the next release. Keep the port on loopback.
 
 ```bash
 mkdir trading212-mcp && cd trading212-mcp
@@ -131,8 +126,6 @@ chmod 600 .env
 docker compose up -d --build
 curl --fail --silent http://127.0.0.1:8000/health
 ```
-
-Expected response: `{"status":"ok"}`
 
 - MCP: `http://127.0.0.1:8000/mcp`
 - Health: `http://127.0.0.1:8000/health`
@@ -185,6 +178,12 @@ protected-file formats, verification, and ChatGPT Web connection steps.
 | `get_order_history` | Historical orders and fills |
 | `get_transactions` | Deposits, withdrawals, fees, and transfers |
 | `get_dividends` | Paid dividends |
+| `search_instruments` | Instruments matching ticker, name, or ISIN |
+| `get_exchanges` | Exchange metadata and schedules |
+| `get_pies` | Existing pies |
+| `get_pie` | One pie's settings and instruments |
+| `list_snapshots` | Saved capture times and account totals |
+| `get_snapshot` | Saved summary and paginated positions |
 
 See the [MCP tool reference](docs/mcp-tools.md) for arguments, Trading 212
 endpoints, permissions, response formats, pagination, and safe errors. Use the
@@ -194,6 +193,7 @@ official MCP Inspector to verify local discovery by following the
 ## 📚 Documentation
 
 - [Configuration](docs/configuration.md): credentials, environments, local setup, and networking
+- [CSV snapshots](docs/snapshots.md): four-hour NAS capture and MCP history access
 - [MCP tool reference](docs/mcp-tools.md): tools, endpoints, arguments, and responses
 - [Security design](docs/security.md): GET-only boundary, architecture, and runtime controls
 - [Development and verification](docs/development.md): tests, linting, builds, and MCP Inspector

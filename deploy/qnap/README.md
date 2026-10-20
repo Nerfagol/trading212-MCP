@@ -9,6 +9,14 @@ tunnel identity, deployed NAS address, or financial data.
 - [MCP tool reference](../../docs/mcp-tools.md)
 - [QNAP deployment guide](../../docs/qnap-deployment.md)
 - [Secure MCP Tunnel](../../docs/secure-mcp-tunnel.md)
+- [CSV snapshot setup](../../docs/snapshots.md)
+
+For optional four-hour CSV collection, prepare the private directory in the
+snapshot guide and use `./deploy/qnap/deploy.sh snapshots`,
+`./deploy/qnap/update.sh snapshots`, and `./deploy/qnap/verify.sh snapshots`.
+The MCP container reads the mount; the separate collector writes it. Existing
+`mcp` and `all` deploy/update targets preserve this setup while the collector
+container exists. Keep the same overlay when using Compose directly.
 
 ## First deployment
 
