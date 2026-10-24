@@ -8,11 +8,12 @@ read-only Trading 212 interface. Optional CSV storage has a separate collector.
 ```bash
 python3 -m venv .venv
 . .venv/bin/activate
-python -m pip install -e '.[dev]'
+python -m pip install --require-hashes -r requirements-dev.txt
+python -m pip install -e '.[dev]' --no-deps --no-build-isolation
 ruff check .
 mypy src tests
 pytest
-python -m build
+python -m build --no-isolation
 docker build -t trading212-mcp:local .
 ```
 

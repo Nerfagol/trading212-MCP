@@ -88,6 +88,18 @@ infinite retries and unbounded request bursts.
 
 ## Container controls
 
+Runtime, build and development dependencies are version-locked with SHA-256
+artifact hashes. Docker verifies third-party hashes before installation and
+installs the project wheel separately without resolving additional dependencies.
+CI audits all three locks for known advisories and scans the runtime image for
+high/critical OS and Python vulnerabilities on pull requests and weekly. It
+reports all such image findings and blocks those with an available fix. Unfixed
+base-image advisories remain visible for review; a green gate is not a clean
+bill of health for the operating system.
+See [dependency maintenance](development.md#security-review) for regeneration
+and local audit commands. A passing scan describes the checked versions and
+advisory database at that time; updates still require fresh checks.
+
 The MCP image and Compose project use:
 
 - a non-root runtime user with UID/GID 10001;
@@ -117,6 +129,11 @@ publishes no ports.
 Local Docker binds to `127.0.0.1` by default. QNAP deployment binds the MCP port
 to one fixed NAS LAN address, not a wildcard address. Host and Origin validation
 is enabled for Streamable HTTP.
+
+The QNAP verifier checks every published mapping and requires one RFC 1918 IPv4
+address across all mappings. It rejects wildcard, public, loopback, link-local,
+IPv6, malformed and multiple-address bindings before MCP discovery. Compare
+the accepted private address with the intended NAS address in Container Station.
 
 The optional tunnel uses host networking only to reach the LAN-bound MCP
 listener. Its health and admin service binds to `127.0.0.1:18080`, remote UI is

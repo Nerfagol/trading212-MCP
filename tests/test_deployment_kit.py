@@ -323,6 +323,61 @@ def test_nas_verifier_never_calls_financial_tools() -> None:
         assert tool not in script
 
 
+@pytest.mark.parametrize(
+    ("bindings", "accepted"),
+    [
+        ("192.168.50.12:8000", True),
+        ("10.20.30.40:18000", True),
+        ("172.16.1.2:8000\n172.16.1.2:18000", True),
+        ("0.0.0.0:8000", False),
+        ("192.168.50.12:8000\n0.0.0.0:8000", False),
+        ("192.168.50.12:8000\n[::]:8000", False),
+        ("203.0.113.1:8000", False),
+        ("127.0.0.1:8000", False),
+        ("169.254.1.2:8000", False),
+        ("172.32.1.2:8000", False),
+        ("192.168.50.12:8000\n192.168.50.13:8000", False),
+        ("192.168.999.12:8000", False),
+        ("192.168.50.12:0", False),
+        ("192.168.50.12:65536", False),
+        ("192.168.50.12:8000\nmalformed", False),
+        ("", False),
+    ],
+)
+def test_qnap_verifier_checks_every_published_binding_before_discovery(
+    tmp_path: Path, bindings: str, accepted: bool,
+) -> None:
+    # Only Docker is replaced: run the real shell verifier and Python validator.
+    docker = tmp_path / "docker"
+    docker.write_text(
+        f"#!{sys.executable}\n"
+        "import os, subprocess, sys\n"
+        "args = sys.argv[1:]\n"
+        "if args[0] == 'inspect':\n"
+        "    print('running')\n"
+        "elif args[0] == 'port':\n"
+        "    print(os.environ['TEST_BINDINGS'])\n"
+        "elif args[:2] == ['exec', '-i']:\n"
+        "    if '--check-bindings' in args:\n"
+        "        sys.exit(subprocess.call([sys.executable, *args[4:]]))\n"
+        "    print('discovery reached')\n"
+        "elif args[0] != 'exec':\n"
+        "    sys.exit(2)\n"
+    )
+    docker.chmod(0o700)
+    result = subprocess.run(
+        ["sh", str(QNAP / "verify.sh"), "mcp"],
+        env=os.environ | {"DOCKER_BIN": str(docker), "TEST_BINDINGS": bindings},
+        capture_output=True,
+        text=True,
+        timeout=10,
+        check=False,
+    )
+    assert (result.returncode == 0) is accepted
+    assert ("discovery reached" in result.stdout) is accepted
+    assert ("LAN binding: PASS" in result.stdout) is accepted
+
+
 def test_tool_documentation_covers_every_tool_and_endpoint() -> None:
     text = (ROOT / "docs" / "mcp-tools.md").read_text()
 
