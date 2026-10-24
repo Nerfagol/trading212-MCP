@@ -16,6 +16,7 @@ dist/
 deploy/qnap/tunnel/secrets/
 deploy/qnap/secrets/
 deploy/qnap/mtls.enabled
+deploy/qnap/storage.conf
 deploy/qnap/tunnel/state/
 deploy/qnap/tunnel/*.log
 docs/superpowers/

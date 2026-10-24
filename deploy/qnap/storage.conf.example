@@ -1,0 +1,3 @@
+# Nonsecret private host paths; copy to storage.conf before enabling.
+T212_SNAPSHOT_HOST_DIR=/path/to/private/project/snapshots
+T212_LOG_HOST_DIR=/path/to/private/project/logs

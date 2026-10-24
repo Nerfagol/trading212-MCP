@@ -297,6 +297,19 @@ def test_enabled_mtls_survives_normal_operations(tmp_path: Path, operation: str)
     assert up_calls and all("--force-recreate" in call for call in up_calls)
 
 
+def test_snapshot_paths_and_logs_survive_updates(tmp_path: Path) -> None:
+    project = _copy_deployment_tree(tmp_path)
+    (project / ".env").write_text("configured\n")
+    qnap = project / "deploy/qnap"
+    (qnap / "storage.conf").write_text("T212_SNAPSHOT_HOST_DIR=/private/snapshots\n")
+    docker, log = _fake_docker(tmp_path)
+    env = os.environ | {"DOCKER_BIN": str(docker), "DOCKER_LOG": str(log)}
+    subprocess.run(["sh", str(qnap / "update.sh"), "snapshots"], env=env, check=True)
+    calls = log.read_text().splitlines()
+    assert calls and all("storage.conf" in call for call in calls)
+    assert all("docker-compose.logs.yml" in call for call in calls)
+
+
 def _load_verify_mcp_module() -> ModuleType:
     path = QNAP / "verify_mcp.py"
     spec = importlib.util.spec_from_file_location("verify_mcp", path)
