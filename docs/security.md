@@ -91,14 +91,21 @@ infinite retries and unbounded request bursts.
 Runtime, build and development dependencies are version-locked with SHA-256
 artifact hashes. Docker verifies third-party hashes before installation and
 installs the project wheel separately without resolving additional dependencies.
-CI audits all three locks for known advisories and scans the runtime image for
-high/critical OS and Python vulnerabilities on pull requests and weekly. It
-reports all such image findings and blocks those with an available fix. Unfixed
-base-image advisories remain visible for review; a green gate is not a clean
-bill of health for the operating system.
+CI audits all three locks for known advisories and scans both amd64 and ARM64
+runtime images for
+high/critical OS and Python vulnerabilities on pull requests and weekly. All
+such findings block the image check, including those without an available fix;
+there are no advisory exclusions.
 See [dependency maintenance](development.md#security-review) for regeneration
 and local audit commands. A passing scan describes the checked versions and
 advisory database at that time; updates still require fresh checks.
+
+The builder and runtime use the supported official Python 3.12 Alpine 3.24 base.
+This removes unused Debian util-linux, ACL, systemd and Perl packages that carried
+the inherited advisories; Alpine supplies its own maintained runtime libraries.
+Both stages use the same libc family. Runtime Python dependencies require hashed
+binary wheels, so an incompatible native dependency fails the build rather than
+silently compiling an unreviewed source distribution.
 
 The MCP image and Compose project use:
 

@@ -78,19 +78,21 @@ pip-audit --strict --disable-pip -r requirements-dev.txt
 ```
 
 Use a fresh virtual environment when replacing an old installation so unused,
-vulnerable packages are removed too. These locks target the Docker/CI Python 3.12
-Linux environment; regenerate and test for other Python versions or platforms.
+vulnerable packages are removed too. These locks are resolved on Python 3.12/Linux
+and include verified wheel hashes for the Alpine container builds. Docker
+requires binary runtime wheels and fails if a compatible hashed wheel is absent.
+Regenerate and test for other Python versions or platforms.
 Review and audit the regenerated locks before committing them. Do not suppress
 an advisory solely because an upgrade is inconvenient.
 
 CI also runs weekly and on manual request, and scans the freshly built runtime
-image with Trivy. It reports every high and critical OS/Python finding, including
-those without a published fix, then blocks fixable high/critical findings. An
-unfixed finding is still a risk to review, even when the blocking check passes.
-To repeat the blocking image scan locally, omit `--ignore-unfixed` for the full report:
+amd64 and ARM64 images with Trivy. Every high and critical OS/Python finding
+fails the image check,
+including those without a published fix. There are no advisory ignore rules.
+To repeat the image scan locally:
 
 ```bash
-trivy image --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 trading212-mcp:local
+trivy image --scanners vuln --severity HIGH,CRITICAL --exit-code 1 trading212-mcp:local
 ```
 
 Dependabot checks Python packages, GitHub Actions and the Docker base weekly.
@@ -126,5 +128,7 @@ Build the runtime container:
 docker build --pull -t trading212-mcp:local .
 ```
 
-The multi-stage image installs the project wheel into `python:3.12-slim` and
-runs as UID/GID 10001.
+Both stages use the official `python:3.12-alpine3.24` image. Alpine uses musl
+instead of glibc, so runtime native dependencies must provide compatible binary
+wheels. The runtime retains UID/GID 10001, the healthcheck, and the existing
+container restrictions. No compiler or development tooling is installed there.

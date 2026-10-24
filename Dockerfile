@@ -1,7 +1,7 @@
 ARG VERSION=0.0.0+local
 ARG REVISION=unknown
 
-FROM python:3.12-slim AS builder
+FROM python:3.12-alpine3.24 AS builder
 
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_NO_CACHE_DIR=1
@@ -15,7 +15,7 @@ RUN python -m pip install --require-hashes -r requirements-build.txt \
        --dest /wheels -r requirements.txt \
     && python -m pip wheel --no-build-isolation --no-deps --wheel-dir /wheels .
 
-FROM python:3.12-slim AS runtime
+FROM python:3.12-alpine3.24 AS runtime
 
 ARG VERSION
 ARG REVISION
@@ -34,8 +34,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_NO_CACHE_DIR=1
 
-RUN groupadd --system --gid 10001 app \
-    && useradd --system --uid 10001 --gid app --no-create-home app
+RUN addgroup -S -g 10001 app \
+    && adduser -S -D -H -u 10001 -G app app
 
 COPY --from=builder /wheels /wheels
 COPY --from=builder /build/requirements.txt /tmp/requirements.txt
