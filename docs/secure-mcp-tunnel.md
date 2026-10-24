@@ -77,9 +77,17 @@ does not display their contents.
 
 ## Compose security controls
 
+The tunnel image is assembled locally from the official `tunnel-client` binary
+and a maintained Alpine base. Both upstream images are pinned by multi-platform
+digest in `deploy/qnap/tunnel/Dockerfile`. Only the official binary is copied;
+the optional `cloudflared` helper is excluded because this deployment uses direct
+OpenAI control-plane polling. Existing tunnel IDs and file-based keys are reused.
+CI builds and scans this image on amd64 and ARM64, failing on every HIGH/CRITICAL
+finding, including those without fixes. Dependabot monitors both base pins.
+
 The sanitized tunnel Compose project:
 
-- pins the official image by digest;
+- builds the locally assembled image from the pinned inputs described above;
 - runs as UID/GID `10001:10001`;
 - uses a read-only root filesystem and a 16 MiB `/tmp` tmpfs;
 - drops all Linux capabilities and enables `no-new-privileges`;

@@ -81,10 +81,10 @@ def test_tunnel_compose_enforces_runtime_security_boundary() -> None:
 
 
 def test_tunnel_image_is_pinned_by_digest() -> None:
-    compose = (TUNNEL / "docker-compose.yml").read_text()
-    digest = "sha256:a5b0b220577cdaeeb60a76d59700d03fb83ea8580c9c7871798ecadd09b4b71b"
-
-    assert f"ghcr.io/openai/tunnel-client@{digest}" in compose
+    dockerfile = (TUNNEL / "Dockerfile").read_text()
+    assert re.search(r"FROM ghcr.io/openai/tunnel-client:v[\d.]+@sha256:[a-f0-9]{64}",
+                     dockerfile)
+    assert re.search(r"FROM alpine:[\d.]+@sha256:[a-f0-9]{64}", dockerfile)
 
 
 def test_tunnel_environment_example_contains_no_credentials() -> None:
@@ -217,7 +217,7 @@ def test_deploy_runs_only_quiet_scoped_compose_commands(tmp_path: Path) -> None:
     assert "config --quiet" in calls[0]
     assert calls[1].endswith("up -d --build")
     assert "config --quiet" in calls[2]
-    assert calls[3].endswith("up -d")
+    assert calls[3].endswith("up -d --build")
 
 
 @pytest.mark.parametrize("operation", ["deploy", "update"])
@@ -259,7 +259,7 @@ def test_update_uses_build_or_pull_without_cleanup(tmp_path: Path) -> None:
     assert len(calls) == 4
     assert calls[0].endswith("build --pull")
     assert calls[1].endswith("up -d")
-    assert calls[2].endswith("pull")
+    assert calls[2].endswith("build --pull")
     assert calls[3].endswith("up -d")
 
 

@@ -1,6 +1,9 @@
 services:
   tunnel-client:
-    image: ghcr.io/openai/tunnel-client@sha256:a5b0b220577cdaeeb60a76d59700d03fb83ea8580c9c7871798ecadd09b4b71b
+    build:
+      context: ../../..
+      dockerfile: deploy/qnap/tunnel/Dockerfile
+    image: trading212-tunnel:local
     container_name: openai-mcp-tunnel
     restart: unless-stopped
     init: true

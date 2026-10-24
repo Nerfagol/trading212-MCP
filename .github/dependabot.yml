@@ -12,6 +12,8 @@ updates:
     schedule:
       interval: weekly
   - package-ecosystem: docker
-    directory: /
+    directories:
+      - /
+      - /deploy/qnap/tunnel
     schedule:
       interval: weekly

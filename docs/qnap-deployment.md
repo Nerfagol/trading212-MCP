@@ -97,8 +97,8 @@ Choose one explicit target:
 ./deploy/qnap/deploy.sh all
 ```
 
-`deploy.sh` validates Compose with `config --quiet`, builds only the MCP image,
-and starts only the selected project. It does not stop, remove, or prune any
+`deploy.sh` validates Compose with `config --quiet`, builds the selected MCP or
+tunnel image, and starts only the selected project. It does not stop, remove, or prune any
 other container, volume, image, network, share, or QNAP configuration.
 
 In Container Station, the expected containers are:
@@ -156,7 +156,9 @@ Then update one target:
 ./deploy/qnap/verify.sh all
 ```
 
-The MCP path builds with `--pull`; the tunnel path pulls its pinned digest.
+Both paths build with `--pull`. The tunnel image copies the official client
+binary from a pinned upstream image into a pinned Alpine base; optional helpers
+are excluded. See [tunnel image controls](secure-mcp-tunnel.md#compose-security-controls).
 Neither path runs `down`, removes data, or prunes Docker resources.
 
 ## Roll back the MCP image
@@ -169,8 +171,11 @@ docker compose --env-file .env -f docker-compose.yml up -d --no-build --force-re
 ./deploy/qnap/verify.sh mcp
 ```
 
-Changing the pinned tunnel digest is a reviewed source change. Restore the
-previous Compose file or repository release and run `update.sh tunnel`.
+Changing either pinned tunnel input is a reviewed source change. Restore the
+tunnel Dockerfile and Compose configuration from the same reviewed revision,
+then run `update.sh tunnel` and `verify.sh tunnel`. Restoring Compose alone does
+not roll back a pin stored in the Dockerfile. A pre-upgrade installation that
+used the official image directly requires its matching deployment files instead.
 
 ## LAN-only checks
 
