@@ -48,16 +48,8 @@ verify_mcp() {
         "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3).read()"
 
     binding=$($DOCKER port trading212-mcp 8000/tcp 2>/dev/null || true)
-    case "$binding" in
-        0.0.0.0:*|'[::]':*)
-            printf '%s\n' 'MCP port is bound to a wildcard address: FAIL' >&2
-            exit 1
-            ;;
-        '')
-            printf '%s\n' 'MCP published-port binding was not found: FAIL' >&2
-            exit 1
-            ;;
-    esac
+    "$DOCKER" exec -i trading212-mcp python - --check-bindings "$binding" \
+        < "$SCRIPT_DIR/verify_mcp.py"
 
     "$DOCKER" exec -i trading212-mcp python - http://127.0.0.1:8000/mcp \
         < "$SCRIPT_DIR/verify_mcp.py"

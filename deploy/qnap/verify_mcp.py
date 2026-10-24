@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import ipaddress
 import json
 import sys
 import urllib.error
@@ -39,6 +40,30 @@ FORBIDDEN_TOOL_TERMS = {
     "modify_order",
     "update_order",
 }
+
+
+def validate_bindings(bindings: str) -> None:
+    """Require every mapping to use the same RFC 1918 IPv4 address."""
+    addresses: set[ipaddress.IPv4Address] = set()
+    for line in bindings.splitlines():
+        host, separator, port = line.rpartition(":")
+        if not separator or not port.isascii() or not port.isdecimal() or len(port) > 5:
+            raise ValueError("MCP published-port binding is malformed")
+        try:
+            address = ipaddress.IPv4Address(host)
+        except ipaddress.AddressValueError:
+            raise ValueError("MCP binding must use a private IPv4 address") from None
+        first, second, *_ = address.packed
+        private = (
+            first == 10
+            or (first == 172 and 16 <= second <= 31)
+            or (first == 192 and second == 168)
+        )
+        if not private or not 1 <= int(port) <= 65535:
+            raise ValueError("MCP binding must use a private IPv4 address and valid port")
+        addresses.add(address)
+    if len(addresses) != 1:
+        raise ValueError("MCP must publish on exactly one private IPv4 address")
 
 
 def validate_tool_names(names: set[str]) -> list[str]:
@@ -154,9 +179,17 @@ def main() -> int:
         nargs="?",
         default="http://127.0.0.1:8000/mcp",
     )
+    parser.add_argument(
+        "--check-bindings", metavar="BINDINGS",
+        help="Validate docker port output without connecting to MCP.",
+    )
     args = parser.parse_args()
 
     try:
+        if args.check_bindings is not None:
+            validate_bindings(args.check_bindings)
+            print("MCP published-port bindings: PASS")
+            return 0
         names = discover_tools(args.mcp_url)
         errors = validate_tool_names(names)
     except (RuntimeError, ValueError, json.JSONDecodeError) as exc:
