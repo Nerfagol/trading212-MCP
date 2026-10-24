@@ -128,8 +128,10 @@ Instrument and exchange metadata are cached for ten minutes per credential and
 environment; account data is never served from that cache.
 
 The tunnel project uses the same non-root, read-only, capability-free controls,
-pins the official image by digest, mounts its runtime key read-only, and
-publishes no ports.
+mounts its runtime key read-only, and publishes no ports. Its local image copies
+only the official tunnel-client binary from a digest-pinned upstream image into
+a digest-pinned Alpine base, excluding the unused cloudflared helper. CI scans
+both MCP and tunnel images on amd64 and ARM64 with the same strict gate.
 
 ## Network boundary
 

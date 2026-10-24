@@ -67,7 +67,7 @@ update_tunnel() {
     "$DOCKER" compose \
         --env-file "$TUNNEL_DIR/.env" \
         -f "$TUNNEL_DIR/docker-compose.yml" \
-        pull
+        build --pull
     "$DOCKER" compose \
         --env-file "$TUNNEL_DIR/.env" \
         -f "$TUNNEL_DIR/docker-compose.yml" \

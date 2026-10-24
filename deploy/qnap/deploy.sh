@@ -71,7 +71,7 @@ deploy_tunnel() {
     "$DOCKER" compose \
         --env-file "$TUNNEL_DIR/.env" \
         -f "$TUNNEL_DIR/docker-compose.yml" \
-        up -d
+        up -d --build
 }
 
 deploy_snapshots() {

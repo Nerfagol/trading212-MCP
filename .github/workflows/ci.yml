@@ -98,3 +98,27 @@ jobs:
           exit-code: '1'
           ignore-unfixed: false
           format: table
+
+      - name: Build private tunnel image without publishing
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7
+        with:
+          context: .
+          file: deploy/qnap/tunnel/Dockerfile
+          platforms: linux/${{ matrix.architecture }}
+          push: false
+          load: true
+          pull: true
+          tags: trading212-tunnel:ci
+          cache-from: type=gha,scope=tunnel-${{ matrix.architecture }}
+          cache-to: type=gha,mode=max,scope=tunnel-${{ matrix.architecture }}
+
+      - name: Block all high and critical tunnel vulnerabilities
+        uses: aquasecurity/trivy-action@8f28faec26515256b6d22074d1d2a8986f4cbd87
+        with:
+          version: v0.76.1
+          image-ref: trading212-tunnel:ci
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          exit-code: '1'
+          ignore-unfixed: false
+          format: table
