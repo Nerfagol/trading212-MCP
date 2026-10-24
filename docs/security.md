@@ -151,6 +151,19 @@ public DNS, a public reverse proxy, or another public tunnel for ports 8000 or
 18080. See the [QNAP deployment guide](qnap-deployment.md) and
 [Secure MCP Tunnel guide](secure-mcp-tunnel.md).
 
+## Optional native mutual TLS
+
+QNAP can require client certificates on the existing MCP listener using the
+[mTLS deployment procedure](qnap-deployment.md#mutual-tls-on-the-nas). With mTLS
+enabled, port 8000 serves verified HTTPS only; plaintext and clients without a
+trusted clientAuth certificate cannot reach either MCP or health. The tunnel
+uses its dedicated client identity and validates the server CA and hostname.
+A separate local health identity supports container checks and tool discovery.
+The CA private key is never mounted into either container. TLS authenticates
+these local workloads; it does not introduce end-user OAuth or change the
+Trading 212 GET-only boundary. Host administrators/Docker operators can still
+access mounted secrets. Certificate renewal remains an operator responsibility.
+
 ## Verify the write surface
 
 Run the automated security suite:

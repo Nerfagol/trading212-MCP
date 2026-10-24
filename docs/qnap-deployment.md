@@ -5,6 +5,65 @@ Compose projects: the Trading 212 MCP service and the optional
 outbound OpenAI tunnel client. It never configures a router, public listener,
 reverse proxy, DNS record, or unrelated NAS service.
 
+## Mutual TLS on the NAS
+
+Native mTLS prevents reachable devices/apps without a trusted client certificate
+from querying MCP. It uses the existing listener and containers. No public
+ingress, port forwarding or OAuth server is needed. Your existing ChatGPT app
+and tunnel ID continue to work.
+
+Use a root/admin shell on the NAS and keep the protected environment files.
+The root `.env` must contain the reserved LAN address in `MCP_BIND_ADDRESS`.
+Build the updated MCP image before enabling mTLS. Replace the placeholder below:
+
+```sh
+mkdir -p deploy/qnap/secrets
+chmod 700 deploy/qnap/secrets
+sh deploy/qnap/prepare-mtls.sh deploy/qnap/secrets/mtls '<NAS_LAN_IP>'
+touch deploy/qnap/mtls.enabled
+./deploy/qnap/deploy.sh all
+./deploy/qnap/verify.sh all
+```
+
+Recreating both services briefly interrupts discovery. The supplied scripts
+include the mTLS overlays whenever `mtls.enabled` exists, including future
+updates and snapshot deployments. Missing certificate files stop the operation;
+there is no automatic plaintext fallback. Bare Compose commands do not select
+these overlays: use the supplied scripts. Never remove the marker to work
+around certificate errors. Preserve it alongside deployment state during updates.
+
+MCP mounts its server identity, a separate health client identity and CA
+certificate. The tunnel mounts only its client identity and CA certificate.
+Private keys are mode0400, owned by UID10001 and mounted read-only. The CA key
+remains mode0600 outside both mounts. Restrict and encrypt backups of these
+files. Root/Docker administrators can still access keys.
+
+Plain HTTP and HTTPS without a trusted client certificate must fail. Container
+health and discovery use authenticated HTTPS. The tunnel uses `MCP_CLIENT_CERT`,
+`MCP_CLIENT_KEY` and `CA_BUNDLE`, with CA and hostname verification enabled.
+Verification never calls a financial tool.
+
+The v0.0.18 tunnel `doctor` diagnostic omits the MCP client certificate from its
+HTTP transport. For mTLS, verification instead checks the running client's
+health/readiness/active polling after a required authenticated MCP startup
+probe. The normal runtime transport supports the client certificate. Direct
+authenticated tool discovery is checked separately inside MCP. Plain HTTP
+deployments retain the existing doctor check.
+
+Leaf certificates last 365 days. Verification fails when fewer than 90 days
+remain; schedule renewal within nine months. Generate a fresh directory such as
+`deploy/qnap/secrets/mtls.next` with the same NAS address. Retain the current
+directory as a protected rollback copy, move the new directory to
+`deploy/qnap/secrets/mtls`, then recreate both containers with `deploy.sh all`.
+Recreation is required after replacing directories so mounts use the new keys.
+Run `verify.sh all` and verify unauthenticated rejection again. This rotates the
+private CA and all workload identities together.
+
+Before migration retain previous images and matching public deployment files.
+If activation fails, restore those files/images and explicitly remove the
+marker to restore the earlier LAN-only HTTP deployment. That rollback removes
+mTLS protection; prefer correcting certificate configuration.
+
 For optional four-hour CSV collection in the MCP project, follow the
 [snapshot setup guide](snapshots.md). Use `deploy.sh snapshots`,
 `update.sh snapshots`, and `verify.sh snapshots` for that configuration.

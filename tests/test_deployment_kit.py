@@ -263,6 +263,40 @@ def test_update_uses_build_or_pull_without_cleanup(tmp_path: Path) -> None:
     assert calls[3].endswith("up -d")
 
 
+@pytest.mark.parametrize("operation", ["deploy", "update"])
+def test_enabled_mtls_survives_normal_operations(tmp_path: Path, operation: str) -> None:
+    project = _copy_deployment_tree(tmp_path)
+    qnap = project / "deploy/qnap"
+    (project / ".env").write_text("configured\n")
+    (qnap / "tunnel/.env").write_text("configured\n")
+    (qnap / "tunnel/secrets").mkdir()
+    (qnap / "tunnel/secrets/control_plane_api_key").write_text("configured\n")
+    (qnap / "mtls.enabled").touch()
+    docker, log = _fake_docker(tmp_path)
+    result = subprocess.run(
+        ["sh", str(qnap / f"{operation}.sh"), "all"],
+        env=os.environ | {"DOCKER_BIN": str(docker), "DOCKER_LOG": str(log)},
+    )
+    # Missing certificate material must stop before any container changes.
+    assert result.returncode != 0
+    assert not log.exists()
+    for role, names in {
+        "server": ["ca.crt", "server.crt", "server.key", "health.crt", "health.key"],
+        "tunnel": ["ca.crt", "tunnel.crt", "tunnel.key"],
+    }.items():
+        directory = qnap / "secrets/mtls" / role
+        directory.mkdir(parents=True)
+        for name in names:
+            (directory / name).write_text("test-only\n")
+    subprocess.run(
+        ["sh", str(qnap / f"{operation}.sh"), "all"],
+        env=os.environ | {"DOCKER_BIN": str(docker), "DOCKER_LOG": str(log)}, check=True,
+    )
+    assert all("docker-compose.mtls.yml" in call for call in log.read_text().splitlines())
+    up_calls = [call for call in log.read_text().splitlines() if " up " in call]
+    assert up_calls and all("--force-recreate" in call for call in up_calls)
+
+
 def _load_verify_mcp_module() -> ModuleType:
     path = QNAP / "verify_mcp.py"
     spec = importlib.util.spec_from_file_location("verify_mcp", path)

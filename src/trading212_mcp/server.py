@@ -24,6 +24,7 @@ from trading212_mcp.catalogs import search_instruments as search_catalog
 from trading212_mcp.client import Trading212Client, Trading212Error
 from trading212_mcp.config import ConfigError, Settings
 from trading212_mcp.snapshots import SnapshotError, SnapshotStore
+from trading212_mcp.tls import server_options
 
 ClientFactory = Callable[[], Trading212Client]
 T = TypeVar("T")
@@ -382,7 +383,11 @@ app = create_app(mcp)
 
 def main() -> None:
     """Run the ASGI application on the container's fixed port."""
-    uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")
+    try:
+        options = server_options(os.environ)
+        uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info", **options)
+    except (ValueError, OSError):
+        raise SystemExit("MCP listener configuration failed") from None
 
 
 if __name__ == "__main__":

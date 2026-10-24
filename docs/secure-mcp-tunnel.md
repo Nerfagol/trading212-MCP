@@ -8,6 +8,12 @@ and [ChatGPT connection guide](https://developers.openai.com/plugins/deploy/conn
 
 ## Architecture
 
+For protection against other local apps/devices, enable
+[native MCP mutual TLS](qnap-deployment.md#mutual-tls-on-the-nas). The existing
+tunnel presents its dedicated client certificate to the HTTPS MCP listener.
+The OpenAI runtime key, tunnel ID and ChatGPT app remain unchanged. This local
+authentication is separate from OpenAI control-plane authentication and OAuth.
+
 ```text
 ChatGPT or another supported OpenAI product
                     |
