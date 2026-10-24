@@ -17,7 +17,9 @@ Create an isolated environment and install the pinned development dependencies:
 ```bash
 python3 -m venv .venv
 . .venv/bin/activate
-python -m pip install -e '.[dev]'
+python -m pip install --require-hashes -r requirements-dev.txt
+python -m pip install -e '.[dev]' --no-deps --no-build-isolation
+python -m pip check
 ```
 
 Do not put real credentials in test commands, fixtures, snapshots, or issue
@@ -31,7 +33,7 @@ Run the complete local verification matrix:
 pytest
 ruff check .
 mypy src tests
-python -m build
+python -m build --no-isolation
 ```
 
 Focused suites:
@@ -61,6 +63,42 @@ request occurs only when a financial tool is invoked.
 
 ## Security review
 
+The committed `requirements.txt`, `requirements-build.txt`, and
+`requirements-dev.txt` lock every dependency and its artifact hashes. Docker
+uses the runtime and build locks; CI installs the development lock. Regenerate
+all three together on Python 3.12/Linux after changing `pyproject.toml`:
+
+```bash
+pip-compile --upgrade --generate-hashes --strip-extras --allow-unsafe --no-header --no-annotate --no-emit-index-url -o requirements.txt pyproject.toml
+pip-compile --upgrade --generate-hashes --strip-extras --allow-unsafe --no-header --no-annotate --no-emit-index-url --build-deps-for wheel --only-build-deps -o requirements-build.txt pyproject.toml
+pip-compile --upgrade --generate-hashes --strip-extras --allow-unsafe --no-header --no-annotate --no-emit-index-url -c requirements.txt -c requirements-build.txt --build-deps-for editable --extra dev -o requirements-dev.txt pyproject.toml
+pip-audit --strict --disable-pip -r requirements.txt
+pip-audit --strict --disable-pip -r requirements-build.txt
+pip-audit --strict --disable-pip -r requirements-dev.txt
+```
+
+Use a fresh virtual environment when replacing an old installation so unused,
+vulnerable packages are removed too. These locks are resolved on Python 3.12/Linux
+and include verified wheel hashes for the Alpine container builds. Docker
+requires binary runtime wheels and fails if a compatible hashed wheel is absent.
+Regenerate and test for other Python versions or platforms.
+Review and audit the regenerated locks before committing them. Do not suppress
+an advisory solely because an upgrade is inconvenient.
+
+CI also runs weekly and on manual request, and scans the freshly built runtime
+amd64 and ARM64 images with Trivy. Every high and critical OS/Python finding
+fails the image check,
+including those without a published fix. There are no advisory ignore rules.
+To repeat the image scan locally:
+
+```bash
+trivy image --scanners vuln --severity HIGH,CRITICAL --exit-code 1 trading212-mcp:local
+```
+
+Dependabot checks Python packages, GitHub Actions and the Docker base weekly.
+Repository owners must also enable Dependabot alerts and security updates in
+GitHub Settings; adding the configuration file alone does not enable alerts.
+
 The primary automated check is:
 
 ```bash
@@ -81,7 +119,7 @@ contain words such as buy or cancel and is not executable functionality.
 Build the source distribution and wheel:
 
 ```bash
-python -m build
+python -m build --no-isolation
 ```
 
 Build the runtime container:
@@ -90,5 +128,7 @@ Build the runtime container:
 docker build --pull -t trading212-mcp:local .
 ```
 
-The multi-stage image installs the project wheel into `python:3.12-slim` and
-runs as UID/GID 10001.
+Both stages use the official `python:3.12-alpine3.24` image. Alpine uses musl
+instead of glibc, so runtime native dependencies must provide compatible binary
+wheels. The runtime retains UID/GID 10001, the healthcheck, and the existing
+container restrictions. No compiler or development tooling is installed there.

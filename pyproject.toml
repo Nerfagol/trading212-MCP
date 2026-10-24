@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling>=1.27,<2"]
+requires = ["hatchling==1.32.4"]
 build-backend = "hatchling.build"
 
 [project]
@@ -20,18 +20,21 @@ classifiers = [
 ]
 dependencies = [
   "httpx==0.28.1",
-  "mcp==2.0.0",
-  "pydantic==2.13.4",
-  "uvicorn==0.52.3",
+  "mcp==2.3.0",
+  "pydantic==2.14.1",
+  "uvicorn==0.54.0",
 ]
 
 [project.optional-dependencies]
 dev = [
-  "build==1.5.0",
-  "mypy==1.20.2",
-  "pytest==8.4.2",
+  "build==1.6.1",
+  "hatchling==1.32.4",
+  "mypy==2.4.0",
+  "pip-audit==2.10.1",
+  "pip-tools==7.6.2",
+  "pytest==9.1.1",
   "pytest-asyncio==1.4.0",
-  "ruff==0.16.3",
+  "ruff==0.17.2",
 ]
 
 [project.scripts]
@@ -47,7 +50,7 @@ Security = "https://github.com/Nerfagol/trading212-MCP/security"
 packages = ["src/trading212_mcp"]
 
 [tool.hatch.build.targets.sdist]
-exclude = ["/data", "/AGENTS.md", "/docs/superpowers", "/.superpowers"]
+exclude = ["/data", "/AGENTS.md", "/project-tracker.skill*", "/docs/agent", "/docs/superpowers", "/.superpowers"]
 
 [tool.pytest.ini_options]
 addopts = "--strict-markers --strict-config"

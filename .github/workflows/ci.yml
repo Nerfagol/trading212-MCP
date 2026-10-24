@@ -4,6 +4,9 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '23 7 * * 1'
 
 permissions:
   contents: read
@@ -26,11 +29,19 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
+          cache-dependency-path: requirements-dev.txt
 
       - name: Install project and development dependencies
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install -e '.[dev]'
+          python -m pip install --require-hashes -r requirements-dev.txt
+          python -m pip install -e '.[dev]' --no-deps --no-build-isolation
+          python -m pip check
+
+      - name: Audit locked dependencies
+        run: |
+          pip-audit --strict --disable-pip -r requirements.txt
+          pip-audit --strict --disable-pip -r requirements-build.txt
+          pip-audit --strict --disable-pip -r requirements-dev.txt
 
       - name: Lint
         run: ruff check .
@@ -42,16 +53,25 @@ jobs:
         run: pytest
 
       - name: Build Python package
-        run: python -m build
+        run: python -m build --no-isolation
 
   docker:
-    name: Docker image
+    name: Docker image (${{ matrix.architecture }})
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: python
+    strategy:
+      matrix:
+        architecture: [amd64, arm64]
     steps:
       - name: Check out repository
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Set up ARM64 emulation
+        if: matrix.architecture == 'arm64'
+        uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4
+        with:
+          platforms: arm64
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4
@@ -60,7 +80,21 @@ jobs:
         uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7
         with:
           context: .
+          platforms: linux/${{ matrix.architecture }}
           push: false
+          load: true
+          pull: true
           tags: trading212-mcp:ci
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=image-${{ matrix.architecture }}
+          cache-to: type=gha,mode=max,scope=image-${{ matrix.architecture }}
+
+      - name: Block all high and critical runtime vulnerabilities
+        uses: aquasecurity/trivy-action@8f28faec26515256b6d22074d1d2a8986f4cbd87
+        with:
+          version: v0.76.1
+          image-ref: trading212-mcp:ci
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          exit-code: '1'
+          ignore-unfixed: false
+          format: table

@@ -1,17 +1,21 @@
 ARG VERSION=0.0.0+local
 ARG REVISION=unknown
 
-FROM python:3.12-slim AS builder
+FROM python:3.12-alpine3.24 AS builder
 
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_NO_CACHE_DIR=1
 
 WORKDIR /build
 COPY pyproject.toml README.md ./
+COPY requirements.txt requirements-build.txt ./
 COPY src ./src
-RUN python -m pip wheel --wheel-dir /wheels .
+RUN python -m pip install --require-hashes -r requirements-build.txt \
+    && python -m pip download --require-hashes --only-binary=:all: \
+       --dest /wheels -r requirements.txt \
+    && python -m pip wheel --no-build-isolation --no-deps --wheel-dir /wheels .
 
-FROM python:3.12-slim AS runtime
+FROM python:3.12-alpine3.24 AS runtime
 
 ARG VERSION
 ARG REVISION
@@ -30,12 +34,15 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_NO_CACHE_DIR=1
 
-RUN groupadd --system --gid 10001 app \
-    && useradd --system --uid 10001 --gid app --no-create-home app
+RUN addgroup -S -g 10001 app \
+    && adduser -S -D -H -u 10001 -G app app
 
 COPY --from=builder /wheels /wheels
-RUN python -m pip install --no-index --find-links=/wheels trading212-mcp \
-    && rm -rf /wheels
+COPY --from=builder /build/requirements.txt /tmp/requirements.txt
+RUN python -m pip install --no-index --find-links=/wheels --require-hashes \
+       -r /tmp/requirements.txt \
+    && python -m pip install --no-index --no-deps --find-links=/wheels trading212-mcp \
+    && rm -rf /wheels /tmp/requirements.txt
 
 USER 10001:10001
 EXPOSE 8000
