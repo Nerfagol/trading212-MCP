@@ -9,7 +9,7 @@ this repository.
 
 Repository: `https://github.com/Nerfagol/trading212-MCP`
 
-Key facts: eight read-only MCP tools; Docker and QNAP deployment; optional OpenAI
+Key facts (source version): fourteen read-only MCP tools; Docker and QNAP deployment; optional OpenAI
 Secure MCP Tunnel; Demo and Live Trading 212 environments; MIT licensed; no
 trading or order-management implementation.
 

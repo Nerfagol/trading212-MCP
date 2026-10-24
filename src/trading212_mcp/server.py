@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import asyncio
 import os
 from collections.abc import Awaitable, Callable, Mapping
+from pathlib import Path
 from typing import Annotated, Any, TypeVar
 
 import uvicorn
@@ -17,8 +19,11 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
 from trading212_mcp import __version__
+from trading212_mcp.catalogs import MetadataCatalog
+from trading212_mcp.catalogs import search_instruments as search_catalog
 from trading212_mcp.client import Trading212Client, Trading212Error
 from trading212_mcp.config import ConfigError, Settings
+from trading212_mcp.snapshots import SnapshotError, SnapshotStore
 
 ClientFactory = Callable[[], Trading212Client]
 T = TypeVar("T")
@@ -65,6 +70,12 @@ _TOOL_ARGUMENTS = {
     "get_order_history": frozenset({"limit", "ticker", "next_page_path"}),
     "get_transactions": frozenset({"limit", "next_page_path"}),
     "get_dividends": frozenset({"limit", "ticker", "next_page_path"}),
+    "search_instruments": frozenset({"query", "limit"}),
+    "get_exchanges": frozenset(),
+    "get_pies": frozenset(),
+    "get_pie": frozenset({"pie_id"}),
+    "list_snapshots": frozenset({"start", "end", "cursor", "limit"}),
+    "get_snapshot": frozenset({"snapshot_id", "offset", "limit"}),
 }
 
 
@@ -96,17 +107,21 @@ def _default_client_factory() -> Trading212Client:
     return Trading212Client(Settings.from_env())
 
 
-def create_server(client_factory: ClientFactory | None = None) -> MCPServer[Any]:
+def create_server(client_factory: ClientFactory | None = None, *,
+                  snapshot_store: SnapshotStore | None = None) -> MCPServer[Any]:
     """Create the MCP server, optionally using an injected client factory for tests."""
     factory = _default_client_factory if client_factory is None else client_factory
+    catalog = MetadataCatalog()
     server: MCPServer[Any] = MCPServer(
         name="trading212-read-only",
         title="Trading 212 Read-Only",
-        description="Read-only account, portfolio, order, transaction, and dividend data.",
+        description="Read-only Trading 212 data, instrument catalogs, pies and NAS snapshots.",
         instructions=(
             "This server is strictly read-only. It cannot place, change, or cancel orders. "
             "Use exact Trading 212 tickers. Historical calls return one page; pass the returned "
             "next_page_path back to the same tool to continue."
+            " Snapshot prices and quantities are decimal strings; preserve their currencies."
+            " Snapshots are historical observations, not live data or investment returns."
         ),
         version=__version__,
         middleware=[_StrictToolArguments()],
@@ -248,6 +263,77 @@ def create_server(client_factory: ClientFactory | None = None) -> MCPServer[Any]
                 next_page_path=next_page_path,
             )
         )
+
+    @server.tool(annotations=_READ_ONLY_ANNOTATIONS, structured_output=True)
+    async def search_instruments(
+        query: Annotated[str, Field(min_length=1, max_length=100)], limit: Limit = 20,
+    ) -> dict[str, Any]:
+        """Find instrument details by name, ticker or ISIN; exact matches rank first.
+
+        Catalog data is cached for up to ten minutes. Narrow the query if truncated.
+        """
+        if not query.strip():
+            raise ToolError("Instrument query must not be blank")
+        items = await invoke(lambda client: catalog.read(client, "instruments"))
+        return search_catalog(items, query, limit)
+
+    @server.tool(annotations=_READ_ONLY_ANNOTATIONS, structured_output=True)
+    async def get_exchanges() -> dict[str, Any]:
+        """Read exchanges and supplied trading schedules, cached up to ten minutes."""
+        return {"exchanges": await invoke(lambda client: catalog.read(client, "exchanges"))}
+
+    @server.tool(annotations=_READ_ONLY_ANNOTATIONS, structured_output=True)
+    async def get_pies() -> dict[str, Any]:
+        """List existing pie summaries. Uses Trading 212's deprecated Pies API."""
+        return {"pies": await invoke(lambda client: client.get_pies())}
+
+    @server.tool(annotations=_READ_ONLY_ANNOTATIONS, structured_output=True)
+    async def get_pie(
+        pie_id: Annotated[int, Field(strict=True, ge=1, lt=2**63)],
+    ) -> dict[str, Any]:
+        """Read one pie's holdings and settings. Uses the deprecated Pies API."""
+        return await invoke(lambda client: client.get_pie(pie_id))
+
+    async def read_snapshot(operation: Callable[[SnapshotStore], dict[str, Any]]) -> dict[str, Any]:
+        try:
+            store = snapshot_store
+            if store is None:
+                root = os.environ.get("T212_SNAPSHOT_DIR", "")
+                if not root:
+                    raise SnapshotError("Snapshot storage is not configured")
+                environment = os.environ.get("T212_ENV", "demo").strip().lower()
+                store = SnapshotStore(Path(root), environment)
+            return await asyncio.to_thread(operation, store)
+        except SnapshotError as exc:
+            raise ToolError(str(exc)) from None
+        except Exception:
+            raise ToolError("Unable to read snapshot data") from None
+
+    @server.tool(annotations=_READ_ONLY_ANNOTATIONS, structured_output=True)
+    async def list_snapshots(
+        start: str | None = None, end: str | None = None,
+        cursor: str | None = None, limit: Limit = 20,
+    ) -> dict[str, Any]:
+        """List saved NAS captures newest first, with account totals and currencies.
+
+        Optional inclusive start/end timestamps require a timezone. Pass next_cursor
+        with the same filters to continue. Reads saved data without contacting Trading 212.
+        """
+        return await read_snapshot(lambda store: store.list(
+            start=start, end=end, cursor=cursor, limit=limit))
+
+    @server.tool(annotations=_READ_ONLY_ANNOTATIONS, structured_output=True)
+    async def get_snapshot(
+        snapshot_id: Annotated[str, Field(pattern=r"^[0-9]{8}T[0-9]{12}Z$", max_length=22)],
+        offset: Annotated[int, Field(ge=0)] = 0,
+        limit: Annotated[int, Field(ge=1, le=200)] = 100,
+    ) -> dict[str, Any]:
+        """Read a saved capture's summary and a page of positions by its snapshot ID.
+
+        Returns decimal strings for quantities and prices, with currency labels.
+        Pass next_offset to continue. Cannot read arbitrary files or trigger a capture.
+        """
+        return await read_snapshot(lambda store: store.get(snapshot_id, offset=offset, limit=limit))
 
     @server.custom_route(  # type: ignore[untyped-decorator]
         "/health", methods=["GET"], include_in_schema=False

@@ -2,11 +2,12 @@
 
 The project is read-only by implementation, not merely by tool descriptions or
 model instructions. Its network surface and deployment templates are designed
-for a small, stateless self-hosted service.
+for a small self-hosted service with optional private CSV storage.
 
 ## Read-only boundary
 
-The Trading 212 client contains six allowlisted paths, all requested with GET:
+The Trading 212 client contains nine fixed paths and one numeric pie-ID path,
+all requested with GET:
 
 | Method | Endpoint |
 | --- | --- |
@@ -16,13 +17,17 @@ The Trading 212 client contains six allowlisted paths, all requested with GET:
 | `GET` | `/api/v0/equity/history/orders` |
 | `GET` | `/api/v0/equity/history/transactions` |
 | `GET` | `/api/v0/equity/history/dividends` |
+| `GET` | `/api/v0/equity/metadata/instruments` |
+| `GET` | `/api/v0/equity/metadata/exchanges` |
+| `GET` | `/api/v0/equity/pies` |
+| `GET` | `/api/v0/equity/pies/{id}` (positive integer below 2^63) |
 
 There is no generic public HTTP request method. The client rejects any path not
 in this allowlist and contains no POST, PUT, PATCH, or DELETE call. Neither the
 client nor the MCP server implements buying, selling, placing, creating,
 cancelling, modifying, or updating an order.
 
-The eight MCP tools advertise `readOnlyHint: true`, `destructiveHint: false`,
+The fourteen MCP tools advertise `readOnlyHint: true`, `destructiveHint: false`,
 and `openWorldHint: false`. Those annotations help an MCP host, but the enforced
 boundary is the fixed GET-only API client. See the [MCP tool reference](mcp-tools.md)
 for the exact tool surface.
@@ -92,7 +97,16 @@ The MCP image and Compose project use:
 - `no-new-privileges`;
 - a local healthcheck;
 - `restart: unless-stopped`; and
-- no database or persistent application volume.
+- no database; optional snapshot storage mounted read-only in the MCP service.
+
+The optional collector writes only to its dedicated snapshot mount. It publishes
+both CSVs by atomic directory rename under an exclusive lock. Files use mode
+0600 and capture directories 0700; readers reject symlinks, non-regular files,
+hard links, invalid schemas, and files over 32 MiB. CSV text is escaped against
+spreadsheet formula execution. Treat CSVs and backups as private financial data.
+Only collector timestamps and health state appear in operational status.
+Instrument and exchange metadata are cached for ten minutes per credential and
+environment; account data is never served from that cache.
 
 The tunnel project uses the same non-root, read-only, capability-free controls,
 pins the official image by digest, mounts its runtime key read-only, and
@@ -127,5 +141,5 @@ rg -n -i '\.(post|put|patch|delete|request|send)\(|def (buy|sell|place|create_or
 ```
 
 The expected result is no match. The QNAP verifier also discovers the exact
-eight tool names without invoking any financial tool and rejects write-like
+fourteen tool names without invoking any financial tool and rejects write-like
 names.

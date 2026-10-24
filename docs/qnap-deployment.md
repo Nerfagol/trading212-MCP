@@ -1,9 +1,13 @@
 # QNAP Deployment Guide
 
 This guide deploys the server on QNAP Container Station as two independent,
-stateless Compose projects: the Trading 212 MCP service and the optional
+Compose projects: the Trading 212 MCP service and the optional
 outbound OpenAI tunnel client. It never configures a router, public listener,
 reverse proxy, DNS record, or unrelated NAS service.
+
+For optional four-hour CSV collection in the MCP project, follow the
+[snapshot setup guide](snapshots.md). Use `deploy.sh snapshots`,
+`update.sh snapshots`, and `verify.sh snapshots` for that configuration.
 
 ## Prerequisites
 

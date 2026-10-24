@@ -1,10 +1,11 @@
 # MCP Tool Reference
 
-The server exposes exactly eight Trading 212 read-only tools. Every tool has
+The server exposes exactly fourteen read-only tools. Every tool has
 MCP `readOnlyHint: true`, `destructiveHint: false`, and `openWorldHint: false`.
 The annotations help an MCP client select tools, but the technical security
-boundary is stronger: the API client contains only six allowlisted `GET`
-paths and has no generic request or order-writing method.
+boundary is stronger: the API client contains nine fixed `GET` paths plus a
+constrained numeric pie-ID path and has no generic request or order-writing method.
+Two tools read local snapshots without contacting Trading 212.
 
 ## Tool index
 
@@ -18,6 +19,12 @@ paths and has no generic request or order-writing method.
 | `get_order_history` | Historical orders and fills | `limit`, `ticker`, `next_page_path` | `GET /api/v0/equity/history/orders` |
 | `get_transactions` | Deposits, withdrawals, fees, and transfers | `limit`, `next_page_path` | `GET /api/v0/equity/history/transactions` |
 | `get_dividends` | Paid dividends | `limit`, `ticker`, `next_page_path` | `GET /api/v0/equity/history/dividends` |
+| `search_instruments` | Find an instrument | `query`, `limit` | `GET /api/v0/equity/metadata/instruments` |
+| `get_exchanges` | Exchange metadata | none | `GET /api/v0/equity/metadata/exchanges` |
+| `get_pies` | Existing pies | none | `GET /api/v0/equity/pies` |
+| `get_pie` | Pie details | `pie_id` | `GET /api/v0/equity/pies/{id}` |
+| `list_snapshots` | Saved totals and times | `start`, `end`, `cursor`, `limit` | Local CSV only |
+| `get_snapshot` | Saved positions | `snapshot_id`, `offset`, `limit` | Local CSV only |
 
 Trading 212 API permissions are configured when the key is generated. Enable
 only account data, portfolio, history, and read-order access needed by the
@@ -116,6 +123,50 @@ returns the same page wrapper. Likely permission: history.
 Use this for paid dividends. It accepts `limit`, optional exact `ticker`, and
 `next_page_path`, and returns the standard page wrapper. Likely permission:
 history.
+
+## `search_instruments`
+
+Search ticker, name, or ISIN with a trimmed, case-insensitive `query` of 1–100
+characters. `limit` is 1–50, default 20. Exact ticker and ISIN matches rank first,
+then results sort by ticker. Returns `instruments`, `total_matches`, and `truncated`.
+Successful metadata is cached for ten minutes; expired data is not served on failure.
+
+## `get_exchanges`
+
+Returns `exchanges` with upstream metadata and working schedules. Takes no
+arguments and uses the same ten-minute metadata cache. These are schedules,
+not a live market-open indicator.
+
+## `get_pies`
+
+Returns `pies` from the account. Takes no arguments. Trading 212 marks the pies
+API deprecated, so availability depends on the upstream service and permissions.
+No tool creates, edits, funds, rebalances, or imports holdings into pies.
+
+## `get_pie`
+
+Reads a single pie's `settings` and `instruments`. Required `pie_id` must be a
+positive integer below 2^63. This uses the deprecated pies API, with safe errors
+when unavailable.
+
+## `list_snapshots`
+
+Lists completed local snapshots newest first, with totals, account currency,
+position count, UTC capture times, and a Europe/London display timestamp.
+Optional inclusive `start` and `end` must be timezone-aware ISO timestamps.
+`limit` is 1–50 (default 20); pass the returned `next_cursor` as `cursor` for
+the next page, keeping the same date filters. Returns `snapshots` and `next_cursor`.
+An initialized store with no captures returns an empty list; unconfigured storage
+returns a bounded error. No credentials or Trading 212 requests are needed.
+
+## `get_snapshot`
+
+Required `snapshot_id` comes from `list_snapshots`. Returns `summary`, `positions`,
+and `next_offset`. `offset` starts at zero; `limit` is 1–200 (default 100).
+Quantities, current prices, and totals are decimal strings to preserve precision.
+These are historical observations, not current quotes. Account totals and position
+prices can use different currencies; do not add prices or convert implicitly.
+See [CSV snapshots](snapshots.md) for setup, schemas, scheduling, and retention.
 
 ## Pagination
 

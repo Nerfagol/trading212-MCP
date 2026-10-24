@@ -133,7 +133,9 @@ Keep `tunnel-client` healthy while creating or using the app:
 5. Under **Connection**, select **Tunnel**.
 6. Select the associated tunnel or enter the existing `tunnel_id`.
 7. Create the connection and review discovered tools.
-8. Confirm the exact eight names in [MCP Tool Reference](mcp-tools.md).
+8. Confirm the exact fourteen names in [MCP Tool Reference](mcp-tools.md).
+   After upgrading, refresh the app's tool metadata and start a new conversation
+   if the client still shows the old tool list.
 9. Confirm there is no buy, sell, place, create, cancel, modify, or update-order
    tool.
 10. Start a new chat and enable the app from the tools menu.

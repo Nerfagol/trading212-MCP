@@ -113,6 +113,12 @@ async def test_server_exposes_exact_read_only_tool_metadata() -> None:
         "get_order_history",
         "get_transactions",
         "get_dividends",
+        "search_instruments",
+        "get_exchanges",
+        "get_pies",
+        "get_pie",
+        "list_snapshots",
+        "get_snapshot",
     }
     for tool in tools.values():
         assert tool.description
@@ -212,6 +218,12 @@ async def test_mcp_tool_calls_return_structured_data_and_forward_valid_arguments
         ("get_position", {"ticker": ""}),
         ("get_position", {}),
         ("get_order_history", {"next_page_path": "x" * 2049}),
+        ("get_pie", {"pie_id": True}),
+        ("get_pie", {"pie_id": 0}),
+        ("get_pie", {"pie_id": "1/duplicate"}),
+        ("search_instruments", {"query": "x", "limit": 51}),
+        ("get_snapshot", {"snapshot_id": "../data"}),
+        ("list_snapshots", {"path": "/etc/passwd"}),
     ],
 )
 async def test_invalid_mcp_arguments_are_rejected_before_client_calls(

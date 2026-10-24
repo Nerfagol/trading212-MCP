@@ -19,6 +19,12 @@ EXPECTED_TOOLS = {
     "get_order_history",
     "get_transactions",
     "get_dividends",
+    "search_instruments",
+    "get_exchanges",
+    "get_pies",
+    "get_pie",
+    "list_snapshots",
+    "get_snapshot",
 }
 
 FORBIDDEN_TOOL_TERMS = {
