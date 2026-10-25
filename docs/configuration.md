@@ -28,11 +28,24 @@ official [API key instructions](https://helpcentre.trading212.com/hc/en-us/artic
 | `MCP_PORT` | Compose only | `8000` | Published host port |
 | `MCP_ALLOWED_HOSTS` | no | local and container hosts | Comma-separated MCP Host-header allowlist |
 | `MCP_ALLOWED_ORIGINS` | no | local HTTP origins | Comma-separated browser Origin allowlist |
-| `T212_SNAPSHOT_DIR` | collector only | unset | Container/process directory for CSV storage; overlay sets `/snapshots` |
+| `T212_SNAPSHOT_DIR` | snapshot reader/collector | unset | Container/process CSV directory; overlay sets `/snapshots` |
 | `T212_SNAPSHOT_HOST_DIR` | snapshot Compose only | `./data/snapshots` | Existing private host directory mounted into both services |
+| `T212_LOG_DIR` | no | unset | Private process directory for fixed operational event logs; log overlay sets `/logs` |
+| `T212_LOG_HOST_DIR` | logging overlay | none | Existing private host directory for rotating operational logs |
+| `MCP_TLS_DIR` | no | unset | Directory containing server, CA and health-client identities; enables mandatory client-certificate verification |
 
 See [CSV snapshots](snapshots.md) for opt-in setup, four-hour UTC scheduling, and
 storage permissions. Snapshot tools remain discoverable when storage is unset.
+They return a configuration error until storage is explicitly enabled. On QNAP,
+private host paths can be set in ignored `deploy/qnap/storage.conf` without
+editing the credential file. Use the supplied scripts so configured overlays
+remain active on updates.
+
+See [native mTLS](qnap-deployment.md#mutual-tls-on-the-nas) for the exact
+certificate layout and renewal procedure. Its marker and private keys are NAS
+deployment state, not package contents. With mTLS active, both `/mcp` and
+`/health` require verified HTTPS and a trusted client certificate; plain `curl`
+examples below apply to the default loopback HTTP setup.
 
 Start from the sanitized template:
 

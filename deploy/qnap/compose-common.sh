@@ -1,4 +1,4 @@
-# Shared by the scoped deploy/update/verify commands; never source credential files.
+# Shared Compose selection for mTLS/storage; never source credential files.
 if [ -f "$SCRIPT_DIR/mtls.enabled" ]; then
     for name in server/ca.crt server/server.crt server/server.key server/health.crt \
         server/health.key tunnel/ca.crt tunnel/tunnel.crt tunnel/tunnel.key; do

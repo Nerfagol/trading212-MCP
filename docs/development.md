@@ -1,5 +1,23 @@
 # Development and Verification
 
+## Repository layout
+
+| Location | Responsibility |
+| --- | --- |
+| `src/trading212_mcp/` | Python package, fixed GET-only client and MCP tools |
+| `tests/` | Mocked API, transport, storage and security regressions |
+| `docs/` | User configuration, security and operator guides |
+| `deploy/qnap/` | NAS scripts and QNAP-specific Compose overlays |
+| `deploy/qnap/tunnel/` | Private tunnel image and its deployment files |
+| Root Compose files | General local/container defaults and optional snapshots |
+
+`compose-common.sh` shares Compose selection for mTLS and storage across the NAS
+scripts. Keep persistent `snapshots` and `logs` in dedicated private host folders;
+host-specific paths, credentials, certificates and deployment markers remain
+ignored local state. Do not move live data as part of source-only reorganization.
+Python wheels contain application code; source archives also contain sanitized
+setup templates and exclude private operational state even outside Git.
+
 Development and tests run locally without real Trading 212 credentials. All
 network responses in the test suite use `httpx.MockTransport`.
 

@@ -90,29 +90,7 @@ and its automated write-surface checks.
 | QNAP LAN-only | Trusted devices on your LAN | Fixed NAS LAN address | `deploy.sh mcp` |
 | QNAP + OpenAI Secure MCP Tunnel | ChatGPT and supported OpenAI products | Outbound HTTPS; no inbound public port | `deploy.sh tunnel` |
 
-## 🐳 Quick start: local Docker
-
-The released image below has the original eight tools. The six new tools and
-snapshots require a source build until the next release. Keep the port on loopback.
-
-```bash
-mkdir trading212-mcp && cd trading212-mcp
-curl --fail --remote-name https://raw.githubusercontent.com/Nerfagol/trading212-MCP/v0.1.0/.env.example
-cp .env.example .env
-chmod 600 .env
-# Edit .env. Start with a Demo key and T212_ENV=demo.
-docker pull ghcr.io/nerfagol/trading212-mcp:0.1.0
-docker run -d --name trading212-mcp --restart unless-stopped --init \
-  --read-only --tmpfs /tmp:size=16m,mode=1777 \
-  --cap-drop ALL --security-opt no-new-privileges \
-  --env-file .env -p 127.0.0.1:8000:8000 \
-  ghcr.io/nerfagol/trading212-mcp:0.1.0
-curl --fail --silent http://127.0.0.1:8000/health
-```
-
-Expected: `{"status":"ok"}`. MCP endpoint: `http://127.0.0.1:8000/mcp`.
-
-## 🛠️ Build from source
+## 🐳 Quick start: build the current source
 
 Prerequisites: Git, Docker Engine, Docker Compose v2, and Trading 212 Demo API
 credentials.
@@ -128,10 +106,14 @@ curl --fail --silent http://127.0.0.1:8000/health
 ```
 
 - MCP: `http://127.0.0.1:8000/mcp`
-- Health: `http://127.0.0.1:8000/health`
 
-See [Configuration](docs/configuration.md) for credentials, environment
-variables, Demo versus Live, running from source, and network settings.
+See [Configuration](docs/configuration.md) for credentials, environments and network settings.
+
+The Compose defaults publish only on loopback and retain the non-root user,
+read-only filesystem, dropped capabilities, and `no-new-privileges` controls.
+The published `0.1.0` image predates the current fourteen-tool feature set,
+mTLS and security updates. Use this source build until the next verified image
+release; see [release status and procedure](docs/releasing.md).
 
 ## 🗄️ Deploy on QNAP
 
@@ -165,6 +147,26 @@ router forwarding or public reverse proxy is required.
 
 Follow the [Secure MCP Tunnel guide](docs/secure-mcp-tunnel.md) for prerequisites,
 protected-file formats, verification, and ChatGPT Web connection steps.
+
+For protection against other devices and NAS apps, enable
+[mutual TLS](docs/qnap-deployment.md#mutual-tls-on-the-nas) on the existing MCP
+listener. Only clients holding a trusted certificate can connect. The tunnel
+presents its own certificate; your ChatGPT app and tunnel ID stay the same.
+No public port, public domain or separate OAuth server is required.
+
+## 🗄️ Optional snapshot history and private logs
+
+Snapshots require configured storage and the optional collector, saving account
+totals and positions every four hours UTC without historical backfill.
+MCP reads the history mount read-only; only the collector writes snapshots.
+
+Follow the [snapshot setup](docs/snapshots.md) to prepare private `snapshots` and
+`logs` folders and configure `deploy/qnap/storage.conf`. Rotating logs contain
+status events only. Unconfigured storage returns a snapshot configuration error.
+
+Use the supplied deploy/update scripts to preserve mTLS and storage overlays.
+Keep persistent data separate from source; protect financial history even when
+its parent is a NAS shared folder. See the [repository layout](docs/development.md#repository-layout).
 
 ## 🧰 MCP tools
 

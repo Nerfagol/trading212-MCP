@@ -46,6 +46,13 @@ Select only one service when required:
 
 ## Update
 
+Use [native mutual TLS](../../docs/qnap-deployment.md#mutual-tls-on-the-nas) to
+require trusted client certificates on the existing MCP listener. Preserve the
+private `mtls.enabled` marker and certificate directories across updates.
+For external history/log paths, copy `storage.conf.example` to private ignored
+`storage.conf`, configure existing owner-only directories, and deploy the
+`snapshots` target. The scripts retain these overlays on subsequent updates.
+
 ```sh
 ./deploy/qnap/update.sh all
 ./deploy/qnap/verify.sh all

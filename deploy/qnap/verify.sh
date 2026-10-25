@@ -104,7 +104,7 @@ verify_tunnel() {
 }
 
 DOCKER=$(find_docker)
-. "$SCRIPT_DIR/compose-mtls.sh"
+. "$SCRIPT_DIR/compose-common.sh"
 
 verify_snapshots() {
     verify_mcp
