@@ -2,8 +2,8 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.nerfagol/trading212-mcp",
   "title": "Trading 212 Read-Only MCP Server",
-  "description": "Read-only Trading 212 account, portfolio, orders, transactions, and dividend data.",
-  "version": "0.1.0",
+  "description": "Read-only Trading 212 account, portfolio, history, metadata, pies and saved CSV snapshots.",
+  "version": "0.2.0",
   "websiteUrl": "https://github.com/Nerfagol/trading212-MCP",
   "repository": {
     "url": "https://github.com/Nerfagol/trading212-MCP",
@@ -13,7 +13,7 @@
   "packages": [
     {
       "registryType": "oci",
-      "identifier": "ghcr.io/nerfagol/trading212-mcp@sha256:77d07af064438a286fa78c6effebb0a8fe6a8e31c58760d271778b967dac1da7",
+      "identifier": "ghcr.io/nerfagol/trading212-mcp:0.2.0",
       "runtimeHint": "docker",
       "runtimeArguments": [
         {

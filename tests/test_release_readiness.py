@@ -8,10 +8,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 REGISTRY_NAME = "io.github.nerfagol/trading212-mcp"
-REGISTRY_IMAGE = (
-    "ghcr.io/nerfagol/trading212-mcp@"
-    "sha256:77d07af064438a286fa78c6effebb0a8fe6a8e31c58760d271778b967dac1da7"
-)
+REGISTRY_IMAGE = "ghcr.io/nerfagol/trading212-mcp:0.2.0"
 EXPECTED_TOOLS = {
     "get_account",
     "get_cash",
@@ -143,7 +140,7 @@ def test_server_json_matches_current_registry_schema_and_release_image() -> None
         "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json"
     )
     assert metadata["name"] == REGISTRY_NAME
-    assert metadata["version"] == project["version"] == "0.1.0"
+    assert metadata["version"] == project["version"] == "0.2.0"
     assert metadata["repository"] == {
         "url": "https://github.com/Nerfagol/trading212-MCP",
         "source": "github",
