@@ -15,9 +15,10 @@ tools, native optional mTLS, four-hour CSV history, private rotating operational
 logs, locked dependencies and strict multi-platform image audits. Use the source
 quick start in the README for these changes until a new release is published.
 
-The next planned release is `0.2.0`. Prepare its package version, release notes,
-and verified images together. Do not point Registry metadata or installation
-instructions at an image that has not been published and verified. Merging a PR
+Release `0.2.0` is being prepared. Its versioned OCI reference is a candidate
+until the release workflow publishes and verifies the multi-platform image.
+After publication, pin the verified index digest in `server.json` before any
+Registry submission or published-image installation guidance. Merging a PR
 does not publish a package/image or update installed NAS containers.
 
 Source distributions explicitly exclude credentials, TLS private directories,
