@@ -43,7 +43,7 @@ require_nonempty() {
 }
 
 DOCKER=$(find_docker)
-. "$SCRIPT_DIR/compose-mtls.sh"
+. "$SCRIPT_DIR/compose-common.sh"
 
 deploy_mcp() {
     collector_name=$("$DOCKER" container inspect --format '{{.Name}}' trading212-snapshots 2>/dev/null || true)

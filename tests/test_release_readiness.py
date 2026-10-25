@@ -8,7 +8,6 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 REGISTRY_NAME = "io.github.nerfagol/trading212-mcp"
-RELEASE_IMAGE = "ghcr.io/nerfagol/trading212-mcp:0.1.0"
 REGISTRY_IMAGE = (
     "ghcr.io/nerfagol/trading212-mcp@"
     "sha256:77d07af064438a286fa78c6effebb0a8fe6a8e31c58760d271778b967dac1da7"
@@ -54,15 +53,16 @@ def test_readme_first_screen_states_product_and_security_model() -> None:
     assert "allowlisted get" in first_screen
 
 
-def test_readme_has_secure_versioned_ghcr_quick_start_and_discovery_terms() -> None:
+def test_readme_quick_start_uses_current_source_and_loopback_defaults() -> None:
     readme = read("README.md")
 
-    assert f"docker pull {RELEASE_IMAGE}" in readme
-    assert "docker run" in readme
-    assert "-p 127.0.0.1:8000:8000" in readme
-    assert "--read-only" in readme
-    assert "--cap-drop ALL" in readme
-    assert "--security-opt no-new-privileges" in readme
+    assert "git clone https://github.com/Nerfagol/trading212-MCP.git" in readme
+    assert "docker pull ghcr.io/nerfagol/trading212-mcp:0.1.0" not in readme
+    assert "http://127.0.0.1:8000/mcp" in readme
+    assert "non-root" in readme
+    assert "read-only filesystem" in readme
+    assert "dropped capabilities" in readme
+    assert "no-new-privileges" in readme
     assert "docker compose up -d --build" in readme
     for term in ("portfolio", "Stocks ISA", "Invest account", "Docker", "QNAP"):
         assert term in readme

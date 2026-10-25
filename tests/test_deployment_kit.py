@@ -486,7 +486,7 @@ def test_readme_starts_with_product_first_onboarding() -> None:
         "## 🔒 Read-only by design",
         "## ✅ What to expect",
         "## 🚀 Choose your deployment",
-        "## 🐳 Quick start: local Docker",
+        "## 🐳 Quick start: build the current source",
         "## 🗄️ Deploy on QNAP",
         "## 🔐 Connect ChatGPT securely",
         "## 🧰 MCP tools",

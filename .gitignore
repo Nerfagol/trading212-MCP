@@ -23,3 +23,6 @@ docs/superpowers/
 docs/agent/
 project-tracker.skill*
 data/
+/.mtls-upgrade-*/
+/.snapshots-upgrade-*/
+**/*.before-runtime-security

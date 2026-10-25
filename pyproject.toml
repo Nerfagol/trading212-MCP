@@ -50,7 +50,17 @@ Security = "https://github.com/Nerfagol/trading212-MCP/security"
 packages = ["src/trading212_mcp"]
 
 [tool.hatch.build.targets.sdist]
-exclude = ["/data", "/AGENTS.md", "/project-tracker.skill*", "/docs/agent", "/docs/superpowers", "/.superpowers"]
+exclude = [
+  "/data", "/logs", "/snapshots", "/AGENTS.md", "/project-tracker.skill*",
+  "/docs/agent", "/docs/superpowers", "/.superpowers",
+  "**/.env", "**/.env.*", "**/secrets", "/deploy/qnap/tunnel/state",
+  "/deploy/qnap/storage.conf", "/deploy/qnap/mtls.enabled",
+  "/.mtls-upgrade-*", "/.snapshots-upgrade-*", "**/*.before-runtime-security",
+]
+
+[tool.hatch.build.targets.sdist.force-include]
+".env.example" = ".env.example"
+"deploy/qnap/tunnel/.env.example" = "deploy/qnap/tunnel/.env.example"
 
 [tool.pytest.ini_options]
 addopts = "--strict-markers --strict-config"

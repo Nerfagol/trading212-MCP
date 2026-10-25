@@ -8,6 +8,24 @@ MCP metadata and the HTTP User-Agent read the installed distribution version.
 `server.json` remains explicit release metadata, and the test suite requires its
 version to match `pyproject.toml`.
 
+## Current status and next release
+
+The published GitHub/GHCR release is `0.1.0`; current source includes fourteen
+tools, native optional mTLS, four-hour CSV history, private rotating operational
+logs, locked dependencies and strict multi-platform image audits. Use the source
+quick start in the README for these changes until a new release is published.
+
+The next planned release is `0.2.0`. Prepare its package version, release notes,
+and verified images together. Do not point Registry metadata or installation
+instructions at an image that has not been published and verified. Merging a PR
+does not publish a package/image or update installed NAS containers.
+
+Source distributions explicitly exclude credentials, TLS private directories,
+financial storage, deployment markers and backup/staging state, even when built
+outside Git. Sanitized `.env.example` templates remain included. Wheels contain
+only the Python package and standard distribution metadata; NAS configuration
+and persistent data remain outside the installed package.
+
 ## Release gate
 
 Before tagging a release, verify the final `main` commit:
@@ -25,11 +43,11 @@ tracked files contain no credentials or generated build artifacts.
 
 ## GitHub and GHCR release
 
-For version `0.1.0`, create and push the annotated `v0.1.0` tag only after CI on
-`main` is green. Publish the matching GitHub Release. The release workflow then
-publishes:
+For a new version, first complete the release gate on the final `main` commit.
+After explicit owner authorization, create its matching annotated `vX.Y.Z` tag
+and GitHub Release. The release workflow publishes the versioned image and:
 
-- `ghcr.io/nerfagol/trading212-mcp:0.1.0`
+- `ghcr.io/nerfagol/trading212-mcp:X.Y.Z`
 - `ghcr.io/nerfagol/trading212-mcp:latest`
 
 The versioned tag is the reproducible installation reference. `latest` is only

@@ -4,6 +4,9 @@
 **/.env.*
 **/secrets/
 **/storage.conf
+.mtls-upgrade-*
+.snapshots-upgrade-*
+**/*.before-runtime-security
 .deps
 .venv
 __pycache__
