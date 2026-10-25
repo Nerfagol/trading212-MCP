@@ -2,8 +2,8 @@
 
 The optional collector saves account totals and current positions on your NAS.
 The MCP service reads those files through `list_snapshots` and `get_snapshot`,
-using the same connection as the live tools. This feature requires a source build;
-the published 0.1.0 image does not include it.
+using the same connection as the live tools. The collector and snapshot tools are
+included in the published 0.2.0 image and current source builds; collection is opt-in.
 
 ## Enable on QNAP
 
