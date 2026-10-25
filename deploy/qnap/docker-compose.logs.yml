@@ -1,0 +1,20 @@
+# Selected with snapshots when private storage.conf is configured.
+services:
+  trading212-mcp:
+    environment:
+      T212_LOG_DIR: /logs
+    volumes:
+      - type: bind
+        source: ${T212_LOG_HOST_DIR:?Set T212_LOG_HOST_DIR in storage.conf}
+        target: /logs
+        bind:
+          create_host_path: false
+  trading212-snapshots:
+    environment:
+      T212_LOG_DIR: /logs
+    volumes:
+      - type: bind
+        source: ${T212_LOG_HOST_DIR:?Set T212_LOG_HOST_DIR in storage.conf}
+        target: /logs
+        bind:
+          create_host_path: false

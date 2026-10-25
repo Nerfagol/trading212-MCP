@@ -55,7 +55,11 @@ async def test_failed_capture_waits_for_next_period_and_redacts_errors(tmp_path:
         return Trading212Client(Settings("synthetic", "synthetic"),
                                 transport=httpx.MockTransport(respond))
     store = SnapshotStore(tmp_path, "demo")
-    collector = SnapshotCollector(store, factory, clock=lambda: now[0])
+    from trading212_mcp.operations import OperationalLog
+    logs = tmp_path / "logs"
+    logs.mkdir(mode=0o700)
+    log = OperationalLog("collector", logs)
+    collector = SnapshotCollector(store, factory, clock=lambda: now[0], log=log)
     await collector.poll()
     await collector.poll()
     assert len(calls) == 1
@@ -65,6 +69,10 @@ async def test_failed_capture_waits_for_next_period_and_redacts_errors(tmp_path:
     now[0] = datetime(2026, 3, 29, 4, tzinfo=UTC)
     await collector.poll()
     assert len(calls) == 2
+    log.close()
+    content = (logs / "collector.jsonl").read_text()
+    assert "capture_failed" in content
+    assert "SENSITIVE" not in content and "synthetic" not in content
 
 
 @pytest.mark.asyncio
