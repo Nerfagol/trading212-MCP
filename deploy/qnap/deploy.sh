@@ -43,6 +43,7 @@ require_nonempty() {
 }
 
 DOCKER=$(find_docker)
+. "$SCRIPT_DIR/compose-mtls.sh"
 
 deploy_mcp() {
     collector_name=$("$DOCKER" container inspect --format '{{.Name}}' trading212-snapshots 2>/dev/null || true)
@@ -51,37 +52,21 @@ deploy_mcp() {
         return
     fi
     require_nonempty "$PROJECT_DIR/.env"
-    "$DOCKER" compose \
-        --env-file "$PROJECT_DIR/.env" \
-        -f "$PROJECT_DIR/docker-compose.yml" \
-        config --quiet
-    "$DOCKER" compose \
-        --env-file "$PROJECT_DIR/.env" \
-        -f "$PROJECT_DIR/docker-compose.yml" \
-        up -d --build
+    compose_mcp mcp config --quiet
+    compose_mcp mcp up -d --build
 }
 
 deploy_tunnel() {
     require_nonempty "$TUNNEL_DIR/.env"
     require_nonempty "$TUNNEL_DIR/secrets/control_plane_api_key"
-    "$DOCKER" compose \
-        --env-file "$TUNNEL_DIR/.env" \
-        -f "$TUNNEL_DIR/docker-compose.yml" \
-        config --quiet
-    "$DOCKER" compose \
-        --env-file "$TUNNEL_DIR/.env" \
-        -f "$TUNNEL_DIR/docker-compose.yml" \
-        up -d --build
+    compose_tunnel config --quiet
+    compose_tunnel up -d --build
 }
 
 deploy_snapshots() {
     require_nonempty "$PROJECT_DIR/.env"
-    "$DOCKER" compose --env-file "$PROJECT_DIR/.env" \
-        -f "$PROJECT_DIR/docker-compose.yml" -f "$PROJECT_DIR/docker-compose.snapshots.yml" \
-        config --quiet
-    "$DOCKER" compose --env-file "$PROJECT_DIR/.env" \
-        -f "$PROJECT_DIR/docker-compose.yml" -f "$PROJECT_DIR/docker-compose.snapshots.yml" \
-        up -d --build trading212-mcp trading212-snapshots
+    compose_mcp snapshots config --quiet
+    compose_mcp snapshots up -d --build trading212-mcp trading212-snapshots
 }
 
 case "${1:-}" in

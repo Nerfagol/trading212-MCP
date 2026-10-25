@@ -2,6 +2,7 @@
 set -eu
 
 SCRIPT_DIR=$(CDPATH= cd "$(dirname "$0")" && pwd)
+PROJECT_DIR=$(CDPATH= cd "$SCRIPT_DIR/../.." && pwd)
 TUNNEL_DIR="$SCRIPT_DIR/tunnel"
 
 usage() {
@@ -44,14 +45,24 @@ require_running() {
 
 verify_mcp() {
     require_running trading212-mcp
-    "$DOCKER" exec trading212-mcp python -c \
-        "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3).read()"
+    if [ -f "$SCRIPT_DIR/mtls.enabled" ]; then
+        for cert in server/server.crt server/health.crt tunnel/tunnel.crt; do
+            openssl x509 -checkend 7776000 -noout \
+                -in "$SCRIPT_DIR/secrets/mtls/$cert" >/dev/null 2>&1 || {
+                echo 'mTLS certificate invalid or expires within 90 days; renew it.' >&2
+                exit 1
+            }
+        done
+    fi
+    "$DOCKER" exec trading212-mcp python -m trading212_mcp.tls
 
     binding=$($DOCKER port trading212-mcp 8000/tcp 2>/dev/null || true)
     "$DOCKER" exec -i trading212-mcp python - --check-bindings "$binding" \
         < "$SCRIPT_DIR/verify_mcp.py"
 
-    "$DOCKER" exec -i trading212-mcp python - http://127.0.0.1:8000/mcp \
+    scheme=http
+    [ ! -f "$SCRIPT_DIR/mtls.enabled" ] || scheme=https
+    "$DOCKER" exec -i trading212-mcp python - "$scheme://127.0.0.1:8000/mcp" \
         < "$SCRIPT_DIR/verify_mcp.py"
     printf '%s\n' 'MCP health and LAN binding: PASS'
 }
@@ -71,10 +82,13 @@ verify_tunnel() {
         exit 1
     fi
 
-    if "$DOCKER" compose \
-        --env-file "$TUNNEL_DIR/.env" \
-        -f "$TUNNEL_DIR/docker-compose.yml" \
-        run --rm \
+    if [ -f "$SCRIPT_DIR/mtls.enabled" ]; then
+        # v0.0.18 doctor omits the MCP client certificate from its diagnostic
+        # transport. Runtime startup probes use the correct mTLS transport.
+        "$DOCKER" exec openai-mcp-tunnel /usr/bin/tunnel-client health \
+            --url=http://127.0.0.1:18080 --require-control-plane-poll >/dev/null 2>&1
+        printf '%s\n' 'Tunnel authenticated startup probe and active polling: PASS'
+    elif compose_tunnel run --rm \
         -e HEALTH_LISTEN_ADDR=127.0.0.1:18081 \
         --entrypoint /usr/bin/tunnel-client \
         tunnel-client doctor \
@@ -90,6 +104,7 @@ verify_tunnel() {
 }
 
 DOCKER=$(find_docker)
+. "$SCRIPT_DIR/compose-mtls.sh"
 
 verify_snapshots() {
     verify_mcp

@@ -6,6 +6,8 @@ from __future__ import annotations
 import argparse
 import ipaddress
 import json
+import os
+import ssl
 import sys
 import urllib.error
 import urllib.request
@@ -117,6 +119,7 @@ def _post_jsonrpc(
     payload: dict[str, Any],
     *,
     session_id: str | None = None,
+    context: ssl.SSLContext | None = None,
 ) -> tuple[bytes, str, str | None]:
     headers = {
         "Accept": "application/json, text/event-stream",
@@ -131,7 +134,7 @@ def _post_jsonrpc(
         method="POST",
     )
     try:
-        with urllib.request.urlopen(request, timeout=10) as response:
+        with urllib.request.urlopen(request, timeout=10, context=context) as response:
             return (
                 response.read(),
                 response.headers.get("Content-Type", "application/json"),
@@ -143,7 +146,7 @@ def _post_jsonrpc(
         raise RuntimeError("MCP endpoint is unavailable") from None
 
 
-def discover_tools(url: str) -> set[str]:
+def discover_tools(url: str, context: ssl.SSLContext | None = None) -> set[str]:
     """Initialize a Streamable HTTP MCP session and list tool names."""
     initialize = {
         "jsonrpc": "2.0",
@@ -155,16 +158,18 @@ def discover_tools(url: str) -> set[str]:
             "clientInfo": {"name": "trading212-deployment-verifier", "version": "1.0"},
         },
     }
-    _, _, session_id = _post_jsonrpc(url, initialize)
+    _, _, session_id = _post_jsonrpc(url, initialize, context=context)
     _post_jsonrpc(
         url,
         {"jsonrpc": "2.0", "method": "notifications/initialized", "params": {}},
         session_id=session_id,
+        context=context,
     )
     body, content_type, _ = _post_jsonrpc(
         url,
         {"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}},
         session_id=session_id,
+        context=context,
     )
     return parse_tool_response(body, content_type)
 
@@ -190,7 +195,15 @@ def main() -> int:
             validate_bindings(args.check_bindings)
             print("MCP published-port bindings: PASS")
             return 0
-        names = discover_tools(args.mcp_url)
+        directory = os.environ.get("MCP_TLS_DIR", "")
+        context = None
+        if directory:
+            from trading212_mcp.tls import client_context
+
+            if not args.mcp_url.startswith("https://"):
+                raise ValueError("mTLS discovery requires HTTPS")
+            context = client_context(directory)
+        names = discover_tools(args.mcp_url, context=context)
         errors = validate_tool_names(names)
     except (RuntimeError, ValueError, json.JSONDecodeError) as exc:
         print(f"MCP discovery: FAIL ({exc})", file=sys.stderr)

@@ -3,6 +3,7 @@
 **/.env
 **/.env.*
 **/secrets/
+**/storage.conf
 .deps
 .venv
 __pycache__

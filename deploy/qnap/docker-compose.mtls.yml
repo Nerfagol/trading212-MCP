@@ -1,0 +1,6 @@
+services:
+  trading212-mcp:
+    environment:
+      MCP_TLS_DIR: /run/mtls
+    volumes:
+      - ./deploy/qnap/secrets/mtls/server:/run/mtls:ro

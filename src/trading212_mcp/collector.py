@@ -15,6 +15,7 @@ from typing import Any
 
 from trading212_mcp.client import Trading212Client
 from trading212_mcp.config import Settings
+from trading212_mcp.operations import OperationalLog
 from trading212_mcp.snapshots import SnapshotStore, parse_time, slot_start, timestamp
 
 STATUS_PATH = Path("/tmp/trading212-collector-status.json")
@@ -28,13 +29,15 @@ class SnapshotCollector:
     """Attempt once per UTC period; only the collector can publish snapshots."""
 
     def __init__(self, store: SnapshotStore, factory: Callable[[], Trading212Client],
-                 clock: Callable[[], datetime] = utc_now) -> None:
+                 clock: Callable[[], datetime] = utc_now,
+                 log: OperationalLog | None = None) -> None:
         self.store = store
         self.factory = factory
         self.clock = clock
         self._attempted: datetime | None = None
         self._last_success: str | None = None
         self._state = "starting"
+        self.log = log
 
     async def poll(self) -> None:
         started = self.clock()
@@ -57,6 +60,8 @@ class SnapshotCollector:
         except Exception:
             # No upstream text, filesystem paths, credentials or financial values in status/logs.
             self._state = "error"
+        if self.log is not None:
+            self.log.emit("capture_succeeded" if self._state == "ok" else "capture_failed")
 
     def status(self) -> dict[str, Any]:
         return {"heartbeat": timestamp(self.clock()), "state": self._state,
@@ -90,12 +95,20 @@ async def run() -> None:
     if not root:
         raise ValueError("Snapshot storage is not configured")
     settings = Settings.from_env()
-    collector = SnapshotCollector(SnapshotStore(Path(root), settings.environment.value),
-                                  lambda: Trading212Client(settings, decimal_json=True))
-    while True:
-        await collector.poll()
-        write_status(collector.status())
-        await asyncio.sleep(30)
+    log_root = os.environ.get("T212_LOG_DIR", "")
+    log = OperationalLog("collector", Path(log_root) if log_root else None)
+    try:
+        log.emit("starting")
+        collector = SnapshotCollector(
+            SnapshotStore(Path(root), settings.environment.value),
+            lambda: Trading212Client(settings, decimal_json=True), log=log,
+        )
+        while True:
+            await collector.poll()
+            write_status(collector.status())
+            await asyncio.sleep(30)
+    finally:
+        log.close()
 
 
 def main() -> int:

@@ -29,6 +29,24 @@ path in the protected root `.env`, and create it with the ownership above. Avoid
 symlinks. Do not use a shared public folder or the project's source directory.
 The directory must already exist; Compose will not silently create it as root.
 
+For a dedicated snapshot location and private operational logs, copy
+`deploy/qnap/storage.conf.example` to ignored `deploy/qnap/storage.conf` and set
+its two absolute directory paths. Create both directories owned by UID/GID10001
+with mode0700. This file contains paths only, never credentials. The deployment
+scripts load it after the protected root environment and select the log overlay
+with the snapshots overlay. Subsequent `mcp`/`all` updates retain collection when
+the collector exists. Preserve storage.conf during source updates.
+
+`mcp.jsonl` records fixed lifecycle events; `collector.jsonl` records startup and
+capture success/failure. Logs contain only UTC timestamp, component and fixed
+event name: no account values, holdings, credentials, HTTP bodies or exception
+details. Each log rotates at1MiB with two retained copies and mode0600. Logs do
+not replace Container Station's normal console logs or perform intrusion alerting.
+If using a Public share, the private project subtree must not grant guest/other
+users access; verify NAS ACLs as well as Unix permissions before collection.
+Configured log storage must remain writable; log initialization/write failures
+stop the affected process rather than writing potentially sensitive diagnostics.
+
 For local Docker, use the same directory preparation and:
 
 ```sh
