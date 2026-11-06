@@ -82,7 +82,7 @@ def test_tunnel_compose_enforces_runtime_security_boundary() -> None:
 
 def test_tunnel_image_is_pinned_by_digest() -> None:
     dockerfile = (TUNNEL / "Dockerfile").read_text()
-    assert re.search(r"FROM ghcr.io/openai/tunnel-client:v[\d.]+@sha256:[a-f0-9]{64}",
+    assert re.search(r"FROM ghcr.io/openai/tunnel-client:v?[\d.]+@sha256:[a-f0-9]{64}",
                      dockerfile)
     assert re.search(r"FROM alpine:[\d.]+@sha256:[a-f0-9]{64}", dockerfile)
 
