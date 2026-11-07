@@ -89,7 +89,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=image-${{ matrix.architecture }}
 
       - name: Block all high and critical runtime vulnerabilities
-        uses: aquasecurity/trivy-action@8f28faec26515256b6d22074d1d2a8986f4cbd87
+        uses: aquasecurity/trivy-action@38b337fff0a2f984d5be173c99e3f633438167ec
         with:
           version: v0.76.1
           image-ref: trading212-mcp:ci
@@ -113,7 +113,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=tunnel-${{ matrix.architecture }}
 
       - name: Block all high and critical tunnel vulnerabilities
-        uses: aquasecurity/trivy-action@8f28faec26515256b6d22074d1d2a8986f4cbd87
+        uses: aquasecurity/trivy-action@38b337fff0a2f984d5be173c99e3f633438167ec
         with:
           version: v0.76.1
           image-ref: trading212-tunnel:ci
