@@ -1,0 +1,39 @@
+name: Feature request
+description: Suggest an improvement within the read-only project scope.
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This project provides read-only access to Trading 212. Requests must preserve that boundary.
+        Use [private security reporting](https://github.com/Nerfagol/trading212-MCP/security/policy) for suspected vulnerabilities.
+        Never include .env files, API keys, Authorization headers, tunnel credentials, certificates or private keys, or account, cash, portfolio, order, transaction or dividend values. Use synthetic examples.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues for this request.
+          required: true
+        - label: This request preserves the read-only Trading 212 boundary.
+          required: true
+        - label: This request contains no credentials or private financial data.
+          required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve
+      description: Describe the task you are trying to complete and who would benefit.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed improvement
+      description: Describe the desired behavior using synthetic examples.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Describe any existing workaround or other approach.
