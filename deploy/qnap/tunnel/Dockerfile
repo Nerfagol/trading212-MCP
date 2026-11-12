@@ -9,10 +9,11 @@ RUN apk add --no-cache ca-certificates \
 # The direct OpenAI polling transport needs only this official binary.
 # Do not copy the optional cloudflared helper or other upstream image contents.
 COPY --from=upstream /usr/bin/tunnel-client /usr/bin/tunnel-client
+COPY deploy/qnap/tunnel/supervise.sh /usr/local/bin/tunnel-supervise
 
 LABEL org.opencontainers.image.title="Trading 212 private MCP tunnel" \
     org.opencontainers.image.source="https://github.com/Nerfagol/trading212-MCP" \
     org.opencontainers.image.version="0.0.19"
 
 USER 10001:10001
-ENTRYPOINT ["/usr/bin/tunnel-client", "run"]
+ENTRYPOINT ["/bin/sh", "/usr/local/bin/tunnel-supervise"]

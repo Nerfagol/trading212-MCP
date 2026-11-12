@@ -14,6 +14,7 @@ services:
     environment:
       - CONTROL_PLANE_TUNNEL_ID=${CONTROL_PLANE_TUNNEL_ID:?Set CONTROL_PLANE_TUNNEL_ID in .env}
       - MCP_SERVER_URL=${MCP_SERVER_URL:?Set MCP_SERVER_URL in .env}
+      - MCP_STARTUP_WAIT_TIMEOUT=3m
       - LOG_LEVEL=info
       - LOG_FORMAT=json
       - HEALTH_LISTEN_ADDR=127.0.0.1:18080
@@ -36,5 +37,5 @@ services:
         - --require-control-plane-poll
       interval: 30s
       timeout: 5s
-      start_period: 10s
+      start_period: 210s
       retries: 3
