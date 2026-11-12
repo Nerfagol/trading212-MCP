@@ -7,6 +7,8 @@ ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_NO_CACHE_DIR=1
 
 WORKDIR /build
+# The Python base can lag Alpine security updates. Fail closed below the fix.
+RUN apk add --no-cache 'krb5-libs>=1.22.3-r0'
 COPY pyproject.toml README.md ./
 COPY requirements.txt requirements-build.txt ./
 COPY src ./src
@@ -34,7 +36,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_NO_CACHE_DIR=1
 
-RUN addgroup -S -g 10001 app \
+RUN apk add --no-cache 'krb5-libs>=1.22.3-r0' \
+    && addgroup -S -g 10001 app \
     && adduser -S -D -H -u 10001 -G app app
 
 COPY --from=builder /wheels /wheels
