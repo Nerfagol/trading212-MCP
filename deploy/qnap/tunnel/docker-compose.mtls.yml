@@ -5,6 +5,5 @@ services:
       MCP_CLIENT_CERT: /run/mtls/tunnel.crt
       MCP_CLIENT_KEY: /run/mtls/tunnel.key
       CA_BUNDLE: /run/mtls/ca.crt
-      MCP_STARTUP_WAIT_TIMEOUT: 30s
     volumes:
       - ../secrets/mtls/tunnel:/run/mtls:ro

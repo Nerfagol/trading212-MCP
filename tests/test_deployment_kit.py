@@ -96,6 +96,14 @@ def test_tunnel_environment_example_contains_no_credentials() -> None:
     assert PRIVATE_IPV4.search(example) is None
 
 
+def test_tunnel_image_version_label_matches_official_binary_source() -> None:
+    dockerfile = (TUNNEL / "Dockerfile").read_text()
+    source = re.search(r"FROM ghcr.io/openai/tunnel-client:v?([\d.]+)@sha256:", dockerfile)
+    label = re.search(r'org.opencontainers.image.version="([\d.]+)"', dockerfile)
+    assert source is not None and label is not None
+    assert label.group(1) == source.group(1)
+
+
 def test_runtime_secret_paths_are_ignored() -> None:
     ignore = (ROOT / ".gitignore").read_text().splitlines()
 
