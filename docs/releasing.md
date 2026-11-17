@@ -8,9 +8,10 @@ MCP metadata and the HTTP User-Agent read the installed distribution version.
 `server.json` remains explicit release metadata, and the test suite requires its
 version to match `pyproject.toml`.
 
-## Preparing 0.2.1
+## Current release
 
-Version 0.2.1 is an unpublished patch-release candidate. It includes:
+[GitHub release 0.2.1](https://github.com/Nerfagol/trading212-MCP/releases/tag/v0.2.1)
+is a published patch release. It includes:
 
 - three-minute MCP startup waiting and automatic tunnel recovery after repeated
   health failures;
@@ -21,37 +22,24 @@ Version 0.2.1 is an unpublished patch-release candidate. It includes:
 - updated pinned release tooling and guided privacy-conscious issue forms.
 
 The fourteen read-only tools and their Trading 212 GET-only boundary are unchanged.
-The deployed NAS candidate passed mTLS, health, tool discovery, readiness and
-polling checks; its installed application version remains 0.2.0 until a separate
-upgrade to a versioned 0.2.1 artifact is authorized.
-
-`server.json` uses the candidate tag `ghcr.io/nerfagol/trading212-mcp:0.2.1` so it
-does not associate the new package version with the old release's image digest.
-That tag becomes available only after the owner authorizes publication of the
-matching GitHub Release and its GHCR workflow succeeds. Before Registry
-publication, verify the published amd64 and ARM64 images, replace this candidate
-reference with the actual multi-platform digest and rerun `mcp-publisher validate`.
-The current-release installation guidance below continues to use the available
-0.2.0 image. Preparation does not publish a tag, release, image or Registry entry.
-
-## Current release
-
-[GitHub release 0.2.0](https://github.com/Nerfagol/trading212-MCP/releases/tag/v0.2.0)
-includes fourteen tools, optional native mTLS, four-hour CSV history, private
-rotating operational logs, locked dependencies and strict image audits.
+Optional native mTLS, four-hour CSV history, private rotating operational logs,
+locked dependencies and strict image audits remain available.
 The wheel, source archive and `SHA256SUMS` are attached to the release.
 
 The published GHCR image supports `linux/amd64` and `linux/arm64`. Both published
-platforms passed installed-version/MCP metadata/User-Agent/health/tool discovery
-checks and scans with zero HIGH/CRITICAL findings at release verification time.
-`latest` and `0.2.0` resolve to the same verified multi-platform index:
+platforms passed actual architecture, installed-version/MCP metadata, mocked
+User-Agent, OCI revision, health and tool discovery checks with networking
+disabled. Fresh scans of both exact remote platform manifests report zero
+HIGH/CRITICAL findings, including unfixed advisories. The downloaded GitHub
+release assets match their reviewed checksums. `latest` and `0.2.1` resolve to
+the same verified multi-platform index:
 
 ```text
-sha256:43c4c4e4af9b3c2ec07aeba68c6e8907690ced6e0213413d5b5a4d02bcebccf9
+sha256:ba25a1304e143434af2db82be83103fb79986a9e4c8c389520cf6390e537c062
 ```
 
-This digest identifies the verified 0.2.0 image; candidate metadata is described
-above. No PyPI or MCP Registry publication is performed by this GitHub/GHCR
+`server.json` pins this verified 0.2.1 index. The official `mcp-publisher` validates
+the metadata. No PyPI or MCP Registry publication is performed by this GitHub/GHCR
 release. Existing NAS containers are not upgraded
 automatically; preserve private credentials, TLS identities and snapshot paths
 when choosing to upgrade. The old 0.1.0 image predates these features and fixes.
@@ -68,12 +56,12 @@ Create a private project directory and protected `.env` from the release's
 sanitized template. Start with Demo credentials. For a new local installation:
 
 ```sh
-docker pull ghcr.io/nerfagol/trading212-mcp:0.2.0
+docker pull ghcr.io/nerfagol/trading212-mcp:0.2.1
 docker run -d --name trading212-mcp --restart unless-stopped --init \
   --read-only --tmpfs /tmp:size=16m,mode=1777 \
   --cap-drop ALL --security-opt no-new-privileges \
   --env-file .env -p 127.0.0.1:8000:8000 \
-  ghcr.io/nerfagol/trading212-mcp:0.2.0
+  ghcr.io/nerfagol/trading212-mcp:0.2.1
 curl --fail --silent http://127.0.0.1:8000/health
 ```
 

@@ -111,8 +111,8 @@ See [Configuration](docs/configuration.md) for credentials, environments and net
 
 The Compose defaults publish only on loopback and retain the non-root user,
 read-only filesystem, dropped capabilities, and `no-new-privileges` controls.
-The published [0.2.0 release](https://github.com/Nerfagol/trading212-MCP/releases/tag/v0.2.0)
-includes fourteen tools, mTLS and snapshots. Pull `ghcr.io/nerfagol/trading212-mcp:0.2.0`;
+The published [0.2.1 release](https://github.com/Nerfagol/trading212-MCP/releases/tag/v0.2.1)
+includes security and tunnel recovery updates. Pull `ghcr.io/nerfagol/trading212-mcp:0.2.1`;
 see the [published-image installation guide](docs/releasing.md#install-the-published-image).
 
 ## 🗄️ Deploy on QNAP
