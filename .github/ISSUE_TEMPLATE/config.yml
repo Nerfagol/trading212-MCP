@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability privately
+    url: https://github.com/Nerfagol/trading212-MCP/security/policy
+    about: Follow SECURITY.md for vulnerabilities, credential leaks, or exposure of private financial data.
