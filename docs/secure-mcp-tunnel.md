@@ -108,6 +108,24 @@ an MCP port bound specifically to the NAS LAN address. Host networking provides
 that private route without creating a published tunnel port. Loopback binding
 keeps `/healthz`, `/readyz`, `/metrics`, and `/ui` off the LAN.
 
+### Reboot and failure recovery
+
+The tunnel allows up to three minutes for the private MCP listener to become
+available. Its internal supervisor allows 210 seconds for startup, catalog
+registration and the first control-plane poll. After that it checks health and
+active polling every 30 seconds, with a five-second timeout per check and forced
+termination one second later if the probe does not stop. Three
+consecutive failures terminate the tunnel process and exit the container so
+Docker's `restart: unless-stopped` policy can recover it. A successful check
+resets the failure count. A persistent outage can cause repeated restarts until
+the dependency becomes available; a single transient failure does not restart it.
+
+The supervisor runs as the same unprivileged user, requires no Docker socket or
+additional service, and emits only a fixed recovery message. Explicitly stopping
+the container still leaves it stopped. Docker's unhealthy status alone does not
+trigger a restart. The three-minute wait applies to both plaintext and mTLS
+deployments; certificate verification remains mandatory when mTLS is enabled.
+
 ## Start and verify
 
 Start only the tunnel project:
