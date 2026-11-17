@@ -8,6 +8,32 @@ MCP metadata and the HTTP User-Agent read the installed distribution version.
 `server.json` remains explicit release metadata, and the test suite requires its
 version to match `pyproject.toml`.
 
+## Preparing 0.2.1
+
+Version 0.2.1 is an unpublished patch-release candidate. It includes:
+
+- three-minute MCP startup waiting and automatic tunnel recovery after repeated
+  health failures;
+- the official tunnel-client 0.0.21 security update, pinned by multi-platform
+  digest, plus the Alpine tunnel base update;
+- fixed Kerberos libraries in both application image stages and refreshed
+  hash-locked Python dependencies;
+- updated pinned release tooling and guided privacy-conscious issue forms.
+
+The fourteen read-only tools and their Trading 212 GET-only boundary are unchanged.
+The deployed NAS candidate passed mTLS, health, tool discovery, readiness and
+polling checks; its installed application version remains 0.2.0 until a separate
+upgrade to a versioned 0.2.1 artifact is authorized.
+
+`server.json` uses the candidate tag `ghcr.io/nerfagol/trading212-mcp:0.2.1` so it
+does not associate the new package version with the old release's image digest.
+That tag becomes available only after the owner authorizes publication of the
+matching GitHub Release and its GHCR workflow succeeds. Before Registry
+publication, verify the published amd64 and ARM64 images, replace this candidate
+reference with the actual multi-platform digest and rerun `mcp-publisher validate`.
+The current-release installation guidance below continues to use the available
+0.2.0 image. Preparation does not publish a tag, release, image or Registry entry.
+
 ## Current release
 
 [GitHub release 0.2.0](https://github.com/Nerfagol/trading212-MCP/releases/tag/v0.2.0)
@@ -24,8 +50,9 @@ checks and scans with zero HIGH/CRITICAL findings at release verification time.
 sha256:43c4c4e4af9b3c2ec07aeba68c6e8907690ced6e0213413d5b5a4d02bcebccf9
 ```
 
-`server.json` pins this published digest. No PyPI or MCP Registry publication is
-performed by this GitHub/GHCR release. Existing NAS containers are not upgraded
+This digest identifies the verified 0.2.0 image; candidate metadata is described
+above. No PyPI or MCP Registry publication is performed by this GitHub/GHCR
+release. Existing NAS containers are not upgraded
 automatically; preserve private credentials, TLS identities and snapshot paths
 when choosing to upgrade. The old 0.1.0 image predates these features and fixes.
 
