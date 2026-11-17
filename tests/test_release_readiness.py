@@ -8,7 +8,10 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 REGISTRY_NAME = "io.github.nerfagol/trading212-mcp"
-REGISTRY_IMAGE = "ghcr.io/nerfagol/trading212-mcp:0.2.1"
+REGISTRY_IMAGE = (
+    "ghcr.io/nerfagol/trading212-mcp@"
+    "sha256:ba25a1304e143434af2db82be83103fb79986a9e4c8c389520cf6390e537c062"
+)
 EXPECTED_TOOLS = {
     "get_account",
     "get_cash",
