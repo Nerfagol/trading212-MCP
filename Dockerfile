@@ -1,7 +1,7 @@
 ARG VERSION=0.0.0+local
 ARG REVISION=unknown
 
-FROM python:3.12-alpine3.24 AS builder
+FROM python:3.15-alpine3.24 AS builder
 
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_NO_CACHE_DIR=1
@@ -17,7 +17,7 @@ RUN python -m pip install --require-hashes -r requirements-build.txt \
        --dest /wheels -r requirements.txt \
     && python -m pip wheel --no-build-isolation --no-deps --wheel-dir /wheels .
 
-FROM python:3.12-alpine3.24 AS runtime
+FROM python:3.15-alpine3.24 AS runtime
 
 ARG VERSION
 ARG REVISION
